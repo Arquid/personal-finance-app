@@ -1,0 +1,83 @@
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+}
+
+.modal {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  width: 400px;
+  max-width: 90vw;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.modal label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 14px;
+}
+
+.modal input,
+.modal select {
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid #e5e4e7;
+  font-size: 14px;
+}
+
+.modal input:disabled {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.field-error {
+  color: #dc2626;
+  font-size: 12px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.modal-actions button {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid #e5e4e7;
+  background: white;
+  cursor: pointer;
+}
+
+.modal-actions button[type="submit"] {
+  background: #201f24;
+  color: white;
+  border: none;
+}
+
+.progress-bar {
+  height: 8px;
+  background: #eef0f2;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 4px;
+}

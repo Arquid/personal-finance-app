@@ -1,0 +1,162 @@
+.recurring-bills-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.recurring-bills-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.recurring-bills-header-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.recurring-bills-header-actions button {
+  background: #201f24;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 16px;
+  cursor: pointer;
+}
+
+.recurring-bills-header-actions button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.recurring-bills-search {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #e5e4e7;
+  width: 100%;
+  max-width: 320px;
+}
+
+.recurring-bills-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.recurring-bills-table th,
+.recurring-bills-table td {
+  text-align: left;
+  padding: 12px 16px;
+  border-bottom: 1px solid #f0f0f2;
+  font-size: 14px;
+}
+
+.bill-name-cell {
+  display: flex;
+  flex-direction: column;
+}
+
+.bill-merchant {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.recurring-bills-table button {
+  background: none;
+  border: 1px solid #e5e4e7;
+  border-radius: 6px;
+  padding: 4px 10px;
+  margin-right: 6px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.status-badge.status-paid {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.status-badge.status-due {
+  background: #fef9c3;
+  color: #b45309;
+}
+
+.status-badge.status-overdue {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.detected-panel {
+  background: white;
+  border-radius: 12px;
+  padding: 16px 20px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.detected-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.detected-panel-header h3 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.detected-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.detected-panel ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.detected-panel li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+  padding: 8px 0;
+  border-bottom: 1px solid #f0f0f2;
+}
+
+.detected-panel li:last-child {
+  border-bottom: none;
+}
+
+.detected-panel li button {
+  background: #201f24;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.checkbox-label {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 8px !important;
+}

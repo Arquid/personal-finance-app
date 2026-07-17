@@ -1,0 +1,109 @@
+.pots-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.pots-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.pots-header button {
+  background: #201f24;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 16px;
+  cursor: pointer;
+}
+
+.pots-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.pot-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pot-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.pot-card-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pot-card-title h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.pot-color-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.pot-card-actions button {
+  background: none;
+  border: 1px solid #e5e4e7;
+  border-radius: 6px;
+  padding: 4px 10px;
+  margin-left: 6px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.pot-amounts {
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.pot-target {
+  font-size: 14px;
+  font-weight: 400;
+  color: #6b7280;
+}
+
+.pot-percentage {
+  font-size: 12px;
+  color: #6b7280;
+  align-self: flex-end;
+}
+
+.pot-card-money-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.pot-card-money-actions button {
+  flex: 1;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #e5e4e7;
+  background: #f7f7f9;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.pot-money-current {
+  color: #6b7280;
+  font-size: 14px;
+  margin: -4px 0 8px;
+}
