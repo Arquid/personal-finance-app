@@ -43,8 +43,8 @@ personal-finance-app/
 ## Prerequisites
 
 - Node.js 20+
-- PostgreSQL 13+ (running locally, or any reachable instance)
 - Git
+- PostgreSQL 13+ — see installation instructions below if you don't have it yet
 
 ## Setup
 
@@ -57,7 +57,18 @@ cd personal-finance-app
 
 ### 2. Database
 
-Create a database and a user with `CREATEDB` privilege (needed for Prisma's shadow database during migrations):
+**Install PostgreSQL** if you don't already have it running:
+
+- **Windows/Mac/Linux:** download the installer from [postgresql.org/download](https://www.postgresql.org/download/) and run it (default port `5432` is fine). This also installs `psql`, the command-line client used below.
+- **Docker (any OS):** `docker run --name finance-postgres -e POSTGRES_PASSWORD=postgres -p 5432:5432 -d postgres:16`
+
+**Create the app's database and user.** Connect as the PostgreSQL superuser (`postgres`) using `psql` — either from a terminal (on Windows, if `psql` isn't on your PATH, run it from `C:\Program Files\PostgreSQL\<version>\bin\psql.exe`) or via a GUI client like pgAdmin:
+
+```bash
+psql -U postgres
+```
+
+Then, at the `psql` prompt (or in pgAdmin's query tool), run:
 
 ```sql
 CREATE USER finance_user WITH PASSWORD 'finance_pass';
@@ -65,6 +76,8 @@ CREATE DATABASE finance_db OWNER finance_user;
 GRANT ALL PRIVILEGES ON DATABASE finance_db TO finance_user;
 ALTER USER finance_user CREATEDB;
 ```
+
+The last line grants `CREATEDB`, which Prisma needs for its shadow database during migrations.
 
 ### 3. Backend
 
