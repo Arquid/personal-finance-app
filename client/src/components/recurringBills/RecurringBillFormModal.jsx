@@ -18,7 +18,7 @@ const schema = z.object({
 });
 
 function RecurringBillFormModal({ categories, initialData, prefillData, onSubmit, onClose }) {
-  const modalRef = useModal(onClose);
+  const { containerRef, headingId } = useModal(onClose);
   const {
     register,
     handleSubmit,
@@ -66,8 +66,15 @@ function RecurringBillFormModal({ categories, initialData, prefillData, onSubmit
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" ref={modalRef} onClick={(e) => e.stopPropagation()}>
-        <h3>{initialData ? "Edit Recurring Bill" : "Add Recurring Bill"}</h3>
+      <div
+        className="modal"
+        ref={containerRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={headingId}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h3 id={headingId}>{initialData ? "Edit Recurring Bill" : "Add Recurring Bill"}</h3>
         <form onSubmit={handleSubmit(submitHandler)}>
           <label>
             Name

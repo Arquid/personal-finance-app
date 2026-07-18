@@ -10,7 +10,7 @@ const schema = z.object({
 });
 
 function BudgetFormModal({ categories, initialData, onSubmit, onClose }) {
-  const modalRef = useModal(onClose);
+  const { containerRef, headingId } = useModal(onClose);
   const {
     register,
     handleSubmit,
@@ -26,8 +26,15 @@ function BudgetFormModal({ categories, initialData, onSubmit, onClose }) {
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" ref={modalRef} onClick={(e) => e.stopPropagation()}>
-        <h3>{initialData ? "Edit Budget" : "Add Budget"}</h3>
+      <div
+        className="modal"
+        ref={containerRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={headingId}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h3 id={headingId}>{initialData ? "Edit Budget" : "Add Budget"}</h3>
         <form onSubmit={handleSubmit(onSubmit)}>
           <label>
             Category

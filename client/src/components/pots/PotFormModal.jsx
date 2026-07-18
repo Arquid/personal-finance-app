@@ -12,7 +12,7 @@ const schema = z.object({
 const COLOR_OPTIONS = ["#0984e3", "#6c5ce7", "#d63031", "#e84393", "#00b894", "#fdcb6e", "#00cec9", "#e17055"];
 
 function PotFormModal({ initialData, onSubmit, onClose }) {
-  const modalRef = useModal(onClose);
+  const { containerRef, headingId } = useModal(onClose);
   const {
     register,
     handleSubmit,
@@ -28,8 +28,15 @@ function PotFormModal({ initialData, onSubmit, onClose }) {
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" ref={modalRef} onClick={(e) => e.stopPropagation()}>
-        <h3>{initialData ? "Edit Pot" : "Add Pot"}</h3>
+      <div
+        className="modal"
+        ref={containerRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={headingId}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h3 id={headingId}>{initialData ? "Edit Pot" : "Add Pot"}</h3>
         <form onSubmit={handleSubmit(onSubmit)}>
           <label>
             Name

@@ -1,6 +1,4 @@
-function formatCurrency(value) {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(value);
-}
+import { formatCurrency } from "../../utils/format";
 
 function BudgetCard({ budget, onEdit, onDelete }) {
   const barWidth = Math.min(100, budget.percentage);

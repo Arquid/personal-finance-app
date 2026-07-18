@@ -1,6 +1,4 @@
-function formatCurrency(value) {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(value);
-}
+import { formatCurrency } from "../../utils/format";
 
 function PotCard({ pot, onEdit, onDelete, onDeposit, onWithdraw }) {
   const current = Number(pot.currentAmount);

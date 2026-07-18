@@ -2,17 +2,14 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import useModal from "../../hooks/useModal";
+import { formatCurrency } from "../../utils/format";
 
 const schema = z.object({
   amount: z.coerce.number().positive("Amount must be greater than 0"),
 });
 
-function formatCurrency(value) {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(value);
-}
-
 function PotMoneyModal({ pot, mode, onSubmit, onClose, error }) {
-  const modalRef = useModal(onClose);
+  const { containerRef, headingId } = useModal(onClose);
   const {
     register,
     handleSubmit,
@@ -26,8 +23,15 @@ function PotMoneyModal({ pot, mode, onSubmit, onClose, error }) {
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" ref={modalRef} onClick={(e) => e.stopPropagation()}>
-        <h3>
+      <div
+        className="modal"
+        ref={containerRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={headingId}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h3 id={headingId}>
           {isWithdraw ? "Withdraw from" : "Add money to"} {pot.name}
         </h3>
         <p className="pot-money-current">Current: {formatCurrency(Number(pot.currentAmount))}</p>

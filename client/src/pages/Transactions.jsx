@@ -12,11 +12,8 @@ import TransactionFilters from "../components/transactions/TransactionFilters";
 import TransactionTable from "../components/transactions/TransactionTable";
 import Pagination from "../components/transactions/Pagination";
 import TransactionFormModal from "../components/transactions/TransactionFormModal";
+import { formatCurrency } from "../utils/format";
 import "../stylesheets/Transactions.css";
-
-function formatCurrency(value) {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(value);
-}
 
 function Transactions() {
   const queryClient = useQueryClient();

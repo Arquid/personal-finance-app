@@ -1,10 +1,11 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useId, useRef } from "react";
 
 const FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 function useModal(onClose) {
   const containerRef = useRef(null);
+  const headingId = useId();
 
   useEffect(() => {
     const container = containerRef.current;
@@ -42,7 +43,7 @@ function useModal(onClose) {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [onClose]);
 
-  return containerRef;
+  return { containerRef, headingId };
 }
 
 export default useModal;

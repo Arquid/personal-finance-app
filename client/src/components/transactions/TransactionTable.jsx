@@ -1,14 +1,4 @@
-function formatCurrency(value) {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(value);
-}
-
-function formatDate(value) {
-  return new Date(value).toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-}
+import { formatCurrency, formatDate } from "../../utils/format";
 
 function SortableHeader({ label, field, sortBy, order, onSort }) {
   const isActive = sortBy === field;

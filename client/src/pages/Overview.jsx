@@ -13,11 +13,8 @@ import {
   CartesianGrid,
 } from "recharts";
 import { getOverview, getSpendingByCategory, getBudgetVsActual } from "../api/client";
+import { formatCurrency } from "../utils/format";
 import "../stylesheets/Overview.css"
-
-function formatCurrency(value) {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(value);
-}
 
 function Overview() {
   const { data: overview, isLoading, isError } = useQuery({
