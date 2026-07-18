@@ -71,20 +71,27 @@ router.post("/:id/deposit", validate(potAmountSchema), async (req, res, next) =>
 router.post("/:id/withdraw", validate(potAmountSchema), async (req, res, next) => {
   try {
     const amount = Number(req.body.amount);
-    const pot = await prisma.$transaction(async (tx) => {
-      const current = await tx.pot.findUnique({ where: { id: Number(req.params.id) } });
-      if (!current) throw Object.assign(new Error("Pot not found"), { status: 404 });
-      if (Number(current.currentAmount) < amount) {
-        throw Object.assign(new Error("Cannot withdraw more than the pot balance"), {
-          status: 400,
-        });
+    const id = Number(req.params.id);
+
+    // Atomic conditional update: the balance check and the decrement happen in a
+    // single statement, so two concurrent withdrawals can't both pass the check
+    // against the same stale balance (unlike a separate read-then-write).
+    const updated = await prisma.$queryRaw`
+      UPDATE "Pot"
+      SET "currentAmount" = "currentAmount" - ${amount}
+      WHERE id = ${id} AND "currentAmount" >= ${amount}
+      RETURNING *
+    `;
+
+    if (updated.length === 0) {
+      const existing = await prisma.pot.findUnique({ where: { id } });
+      if (!existing) {
+        return res.status(404).json({ error: "Pot not found" });
       }
-      return tx.pot.update({
-        where: { id: Number(req.params.id) },
-        data: { currentAmount: { decrement: amount } },
-      });
-    });
-    res.json(pot);
+      return res.status(400).json({ error: "Cannot withdraw more than the pot balance" });
+    }
+
+    res.json(updated[0]);
   } catch (err) {
     next(err);
   }

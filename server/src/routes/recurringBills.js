@@ -6,6 +6,7 @@ const {
   recurringBillCreateSchema,
   recurringBillUpdateSchema,
 } = require("../schemas/recurringBillSchema");
+const { getCurrentMonthRange, computeBillStatus } = require("../utils/recurringBillStatus");
 
 router.get("/", async (req, res, next) => {
   try {
@@ -13,7 +14,20 @@ router.get("/", async (req, res, next) => {
       include: { category: true },
       orderBy: { dueDay: "asc" },
     });
-    res.json(bills);
+
+    const { start, end } = getCurrentMonthRange();
+    const thisMonthTransactions = await prisma.transaction.findMany({
+      where: { date: { gte: start, lt: end }, merchant: { not: null } },
+      select: { merchant: true },
+    });
+    const paidMerchants = new Set(thisMonthTransactions.map((t) => t.merchant.toLowerCase()));
+
+    const billsWithStatus = bills.map((bill) => ({
+      ...bill,
+      status: computeBillStatus(bill, paidMerchants),
+    }));
+
+    res.json(billsWithStatus);
   } catch (err) {
     next(err);
   }

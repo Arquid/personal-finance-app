@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState} from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   getRecurringBills,
@@ -6,38 +6,11 @@ import {
   createRecurringBill,
   updateRecurringBill,
   deleteRecurringBill,
-  getTransactions,
   getCategories,
 } from "../api/client";
 import RecurringBillsTable from "../components/recurringBills/RecurringBillsTable";
 import RecurringBillFormModal from "../components/recurringBills/RecurringBillFormModal";
 import "../stylesheets/RecurringBills.css";
-
-function getCurrentMonthRange() {
-  const now = new Date();
-  const start = new Date(now.getFullYear(), now.getMonth(), 1);
-  const end = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-  return { start, end };
-}
-
-function computeStatus(bill, transactions) {
-  const { start, end } = getCurrentMonthRange();
-  const today = new Date();
-
-  const paid = transactions.some((t) => {
-    if (!t.merchant || !bill.merchant) return false;
-    const txDate = new Date(t.date);
-    return (
-      t.merchant.toLowerCase() === bill.merchant.toLowerCase() && txDate >= start && txDate < end
-    );
-  });
-  if (paid) return "paid";
-
-  const todayDateOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  const dueDate = new Date(today.getFullYear(), today.getMonth(), bill.dueDay);
-  if (dueDate < todayDateOnly) return "overdue";
-  return "due";
-}
 
 function RecurringBills() {
   const queryClient = useQueryClient();
@@ -53,10 +26,7 @@ function RecurringBills() {
     queryKey: ["recurring-bills"],
     queryFn: getRecurringBills,
   });
-  const { data: transactionsData } = useQuery({
-    queryKey: ["transactions-for-bills"],
-    queryFn: () => getTransactions({ page: 1, limit: 500, sortBy: "date", order: "desc" }),
-  });
+
   const { data: categories } = useQuery({ queryKey: ["categories"], queryFn: getCategories });
   const {
     data: detected,
@@ -95,15 +65,7 @@ function RecurringBills() {
     onSuccess: invalidateBills,
   });
 
-  const enrichedBills = useMemo(() => {
-    const transactions = transactionsData?.data ?? [];
-    return (bills ?? []).map((bill) => ({
-      ...bill,
-      status: computeStatus(bill, transactions),
-    }));
-  }, [bills, transactionsData]);
-
-  const filtered = enrichedBills
+  const filtered = (bills ?? [])
     .filter((bill) => {
       const term = search.trim().toLowerCase();
       if (!term) return true;
