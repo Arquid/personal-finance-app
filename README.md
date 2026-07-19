@@ -18,6 +18,8 @@ A full-stack personal finance manager with transaction tracking, budget manageme
 
 **Frontend:** React 19, Vite, React Router, TanStack Query (React Query v5), React Hook Form + Zod, Recharts, Axios
 
+**Testing:** Vitest on both sides — unit + Supertest integration tests on the backend (against a dedicated test database), unit + React Testing Library component tests on the frontend
+
 ## Project Structure
 
 ```
@@ -26,17 +28,21 @@ personal-finance-app/
 │   ├── prisma/
 │   │   ├── schema.prisma    Database schema
 │   │   └── seed.js          Sample data generator
+│   ├── tests/               Integration tests (Supertest, hit the real API + test DB)
 │   └── src/
+│       ├── app.js           Express app (routes, middleware) — no listen(), used by tests
+│       ├── index.js         Loads .env and starts app.js listening
 │       ├── routes/          One file per resource (accounts, transactions, budgets, pots, recurringBills, reports, categories)
-│       ├── schemas/         Zod validation schemas
+│       ├── schemas/         Zod validation schemas (each has a *.test.js next to it)
 │       ├── middleware/      validate.js, errorHandler.js
-│       └── utils/           budgetAlert.js
+│       └── utils/           budgetAlert.js, recurringBillStatus.js (each has a *.test.js next to it)
 └── client/                  React app
     └── src/
+        ├── test/setup.js    Vitest + Testing Library setup (jest-dom matchers, cleanup)
         ├── api/client.js    Axios calls to the backend
         ├── pages/           One page per route
-        ├── components/      One folder per feature (transactions, budgets, pots, recurringBills, layout)
-        ├── hooks/           Shared hooks (useModal.js — Escape-to-close + focus trap for all modals)
+        ├── components/      One folder per feature (transactions, budgets, pots, recurringBills, layout) — key components have a *.test.jsx next to them
+        ├── hooks/           Shared hooks (useModal.js — Escape-to-close + focus trap for all modals, with useModal.test.jsx)
         └── stylesheets/      All CSS lives here, one file per page/shared concern
 ```
 
@@ -118,6 +124,44 @@ npm run dev
 
 The app runs at `http://localhost:5173`.
 
+## Testing
+
+### Backend
+
+Backend tests need their own database, kept separate from your dev data (tests wipe/create rows as they run).
+
+Create it the same way as the dev database (step 2 above), just with a different name:
+
+```sql
+CREATE DATABASE finance_test_db OWNER finance_user;
+GRANT ALL PRIVILEGES ON DATABASE finance_test_db TO finance_user;
+```
+
+Create `server/.env.test`:
+
+```
+DATABASE_URL="postgresql://finance_user:finance_pass@localhost:5432/finance_test_db"
+PORT=4000
+```
+
+Run the tests:
+
+```bash
+cd server
+npm test
+```
+
+This automatically migrates the test database first (`pretest` script), then runs both the unit tests (Zod schemas, `recurringBillStatus.js` — no DB needed) and the integration tests (Supertest against the real Express app, including a test that fires 10 concurrent pot withdrawals to verify the balance can never go negative).
+
+### Frontend
+
+```bash
+cd client
+npm test
+```
+
+Runs unit tests for `useModal` (focus trap, Escape-to-close) and component tests for `PotCard`, `BudgetCard`, and `RecurringBillsTable`. No backend or database needed — these render components in isolation with mocked props.
+
 ## Scripts
 
 **server/**
@@ -125,6 +169,8 @@ The app runs at `http://localhost:5173`.
 |---|---|
 | `npm run dev` | Start the API with nodemon (auto-restart on change) |
 | `npm start` | Start the API without nodemon |
+| `npm test` | Migrate the test DB, then run all unit + integration tests once |
+| `npm run test:watch` | Run tests in watch mode against the test DB |
 | `npx prisma migrate dev` | Apply schema migrations |
 | `npx prisma db seed` | Re-seed sample data (clears existing data first) |
 | `npx prisma studio` | Browse the database in a GUI |
@@ -136,6 +182,8 @@ The app runs at `http://localhost:5173`.
 | `npm run build` | Production build |
 | `npm run preview` | Preview the production build locally |
 | `npm run lint` | Run ESLint |
+| `npm test` | Run all component/hook tests once |
+| `npm run test:watch` | Run tests in watch mode |
 
 ## API Overview
 
