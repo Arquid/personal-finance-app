@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
+import renderWithProviders from "../../test/renderWithProviders";
 import BudgetCard from "./BudgetCard";
 
 const baseBudget = {
@@ -13,26 +14,26 @@ const baseBudget = {
 
 describe("BudgetCard", () => {
   it("renders the category name and formatted amounts", () => {
-    render(<BudgetCard budget={baseBudget} onEdit={() => {}} onDelete={() => {}} />);
+    renderWithProviders(<BudgetCard budget={baseBudget} onEdit={() => {}} onDelete={() => {}} />);
     expect(screen.getByText("Groceries")).toBeInTheDocument();
     expect(screen.getByText("$130.98")).toBeInTheDocument();
   });
 
   it("shows no warning text when status is 'ok'", () => {
-    render(<BudgetCard budget={baseBudget} onEdit={() => {}} onDelete={() => {}} />);
+    renderWithProviders(<BudgetCard budget={baseBudget} onEdit={() => {}} onDelete={() => {}} />);
     expect(screen.queryByText(/gone over/)).not.toBeInTheDocument();
     expect(screen.queryByText(/close to/)).not.toBeInTheDocument();
   });
 
   it("shows the over-budget message when status is 'over'", () => {
-    render(
+    renderWithProviders(
       <BudgetCard budget={{ ...baseBudget, status: "over" }} onEdit={() => {}} onDelete={() => {}} />,
     );
     expect(screen.getByText("You've gone over this budget's limit.")).toBeInTheDocument();
   });
 
   it("shows the warning message when status is 'warning'", () => {
-    render(
+    renderWithProviders(
       <BudgetCard
         budget={{ ...baseBudget, status: "warning" }}
         onEdit={() => {}}
@@ -47,13 +48,13 @@ describe("BudgetCard", () => {
       ...baseBudget,
       latestTransactions: [{ id: 1, description: "Grocery run", amount: -45.2 }],
     };
-    render(<BudgetCard budget={budget} onEdit={() => {}} onDelete={() => {}} />);
+    renderWithProviders(<BudgetCard budget={budget} onEdit={() => {}} onDelete={() => {}} />);
     expect(screen.getByText("Grocery run")).toBeInTheDocument();
     expect(screen.getByText("-$45.20")).toBeInTheDocument();
   });
 
   it("does not render the latest transactions section when empty", () => {
-    render(<BudgetCard budget={baseBudget} onEdit={() => {}} onDelete={() => {}} />);
+    renderWithProviders(<BudgetCard budget={baseBudget} onEdit={() => {}} onDelete={() => {}} />);
     expect(screen.queryByText("Latest Transactions")).not.toBeInTheDocument();
   });
 });

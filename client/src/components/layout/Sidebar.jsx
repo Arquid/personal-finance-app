@@ -1,4 +1,5 @@
 import { NavLink } from "react-router-dom";
+import useCurrency from "../../hooks/useCurrency";
 
 const links = [
   { to: "/", label: "Overview" },
@@ -9,6 +10,8 @@ const links = [
 ];
 
 function Sidebar() {
+  const { currency, setCurrency, currencies } = useCurrency();
+
   return (
     <nav className="sidebar">
       <h1 className="sidebar-title">Finance</h1>
@@ -21,6 +24,21 @@ function Sidebar() {
           </li>
         ))}
       </ul>
+
+      <div className="sidebar-currency">
+        <label htmlFor="currency-select">Currency</label>
+        <select
+          id="currency-select"
+          value={currency}
+          onChange={(e) => setCurrency(e.target.value)}
+        >
+          {Object.entries(currencies).map(([code, { label }]) => (
+            <option key={code} value={code}>
+              {label}
+            </option>
+          ))}
+        </select>
+      </div>
     </nav>
   );
 }

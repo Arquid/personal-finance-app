@@ -1,6 +1,7 @@
-import { formatCurrency } from "../../utils/format";
+import useCurrency from "../../hooks/useCurrency";
 
 function PotCard({ pot, onEdit, onDelete, onDeposit, onWithdraw }) {
+  const { formatCurrency } = useCurrency();
   const current = Number(pot.currentAmount);
   const target = Number(pot.targetAmount);
   const percentage = target > 0 ? Math.min(100, Math.round((current / target) * 100)) : 0;

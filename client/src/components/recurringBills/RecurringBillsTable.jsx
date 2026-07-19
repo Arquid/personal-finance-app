@@ -1,4 +1,4 @@
-import { formatCurrency } from "../../utils/format";
+import useCurrency from "../../hooks/useCurrency";
 
 const STATUS_LABELS = {
   paid: "Paid",
@@ -18,6 +18,7 @@ function SortableHeader({ label, field, sortBy, order, onSort }) {
 }
 
 function RecurringBillsTable({ bills, sortBy, order, onSort, onEdit, onDelete }) {
+  const { formatCurrency } = useCurrency();
   return (
     <table className="recurring-bills-table">
       <thead>

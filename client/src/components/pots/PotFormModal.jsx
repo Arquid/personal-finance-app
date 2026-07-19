@@ -1,4 +1,4 @@
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import useModal from "../../hooks/useModal";
@@ -16,6 +16,7 @@ function PotFormModal({ initialData, onSubmit, onClose }) {
   const {
     register,
     handleSubmit,
+    control,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(schema),
@@ -54,13 +55,27 @@ function PotFormModal({ initialData, onSubmit, onClose }) {
 
           <label>
             Color
-            <select {...register("color")}>
-              {COLOR_OPTIONS.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
+            <Controller
+              name="color"
+              control={control}
+              render={({ field }) => (
+                <div className="color-picker" role="radiogroup" aria-label="Pot color">
+                  {COLOR_OPTIONS.map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      role="radio"
+                      aria-checked={field.value === c}
+                      aria-label={c}
+                      className={`color-swatch ${field.value === c ? "selected" : ""}`}
+                      style={{ background: c }}
+                      onClick={() => field.onChange(c)}
+                    />
+                  ))}
+                </div>
+              )}
+            />
+            {errors.color && <span className="field-error">{errors.color.message}</span>}
           </label>
 
           <div className="modal-actions">

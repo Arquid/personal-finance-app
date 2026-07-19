@@ -1,4 +1,5 @@
-import { formatCurrency, formatDate } from "../../utils/format";
+import { formatDate } from "../../utils/format";
+import useCurrency from "../../hooks/useCurrency";
 
 function SortableHeader({ label, field, sortBy, order, onSort }) {
   const isActive = sortBy === field;
@@ -12,6 +13,7 @@ function SortableHeader({ label, field, sortBy, order, onSort }) {
 }
 
 function TransactionTable({ transactions, sortBy, order, onSort, onEdit, onDelete }) {
+  const { formatCurrency } = useCurrency();
   return (
     <table className="transaction-table">
       <thead>

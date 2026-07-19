@@ -18,6 +18,8 @@ body {
   background: #201f24;
   color: white;
   padding: 24px 16px;
+  display: flex;
+  flex-direction: column;
 }
 
 .sidebar-title {
@@ -45,6 +47,31 @@ body {
 .sidebar a.active {
   background: #383741;
   color: white;
+}
+
+.sidebar-currency {
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid #383741;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sidebar-currency label {
+  font-size: 12px;
+  color: #9391a0;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.sidebar-currency select {
+  background: #2a2933;
+  color: white;
+  border: 1px solid #383741;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 14px;
 }
 
 .app-content {

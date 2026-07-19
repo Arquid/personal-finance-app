@@ -2,13 +2,14 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import useModal from "../../hooks/useModal";
-import { formatCurrency } from "../../utils/format";
+import useCurrency from "../../hooks/useCurrency";
 
 const schema = z.object({
   amount: z.coerce.number().positive("Amount must be greater than 0"),
 });
 
 function PotMoneyModal({ pot, mode, onSubmit, onClose, error }) {
+  const { formatCurrency } = useCurrency();
   const { containerRef, headingId } = useModal(onClose);
   const {
     register,

@@ -12,10 +12,11 @@ import TransactionFilters from "../components/transactions/TransactionFilters";
 import TransactionTable from "../components/transactions/TransactionTable";
 import Pagination from "../components/transactions/Pagination";
 import TransactionFormModal from "../components/transactions/TransactionFormModal";
-import { formatCurrency } from "../utils/format";
+import useCurrency from "../hooks/useCurrency";
 import "../stylesheets/Transactions.css";
 
 function Transactions() {
+  const { formatCurrency } = useCurrency();
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");

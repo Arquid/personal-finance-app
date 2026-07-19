@@ -1,6 +1,7 @@
-import { formatCurrency } from "../../utils/format";
+import useCurrency from "../../hooks/useCurrency";
 
 function BudgetCard({ budget, onEdit, onDelete }) {
+  const { formatCurrency } = useCurrency();
   const barWidth = Math.min(100, budget.percentage);
 
   return (

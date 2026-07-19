@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import renderWithProviders from "../../test/renderWithProviders";
 import RecurringBillsTable from "./RecurringBillsTable";
 
 const bills = [
@@ -35,7 +36,7 @@ const bills = [
 
 describe("RecurringBillsTable", () => {
   it("renders a status badge with the correct label for each status", () => {
-    render(
+    renderWithProviders(
       <table>
         <RecurringBillsTable
           bills={bills}
@@ -53,7 +54,7 @@ describe("RecurringBillsTable", () => {
   });
 
   it("falls back to 'Uncategorized' when a bill has no category", () => {
-    render(
+    renderWithProviders(
       <table>
         <RecurringBillsTable
           bills={bills}
@@ -71,7 +72,7 @@ describe("RecurringBillsTable", () => {
   it("calls onSort with the field name when a sortable header is clicked", async () => {
     const onSort = vi.fn();
     const user = userEvent.setup();
-    render(
+    renderWithProviders(
       <table>
         <RecurringBillsTable
           bills={bills}
@@ -88,7 +89,7 @@ describe("RecurringBillsTable", () => {
   });
 
   it("shows the sort direction arrow only on the active column", () => {
-    render(
+    renderWithProviders(
       <table>
         <RecurringBillsTable
           bills={bills}

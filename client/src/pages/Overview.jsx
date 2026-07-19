@@ -13,10 +13,11 @@ import {
   CartesianGrid,
 } from "recharts";
 import { getOverview, getSpendingByCategory, getBudgetVsActual } from "../api/client";
-import { formatCurrency } from "../utils/format";
+import useCurrency from "../hooks/useCurrency";
 import "../stylesheets/Overview.css"
 
 function Overview() {
+  const { formatCurrency } = useCurrency();
   const { data: overview, isLoading, isError } = useQuery({
     queryKey: ["overview"],
     queryFn: getOverview,
