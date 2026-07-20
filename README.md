@@ -1,5 +1,7 @@
 # Personal Finance App
 
+[![CI](https://github.com/Arquid/personal-finance-app/actions/workflows/ci.yml/badge.svg)](https://github.com/Arquid/personal-finance-app/actions/workflows/ci.yml)
+
 A full-stack personal finance manager with transaction tracking, budget management, savings pots, recurring bill tracking, and spending analytics. Built to demonstrate handling sensitive financial data with proper validation, relational data modeling, and SQL-based reporting (GROUP BY aggregations and window functions).
 
 ## Features
@@ -9,8 +11,10 @@ A full-stack personal finance manager with transaction tracking, budget manageme
 - **Budgets** — CRUD per category, progress bars with over/warning/ok status, latest 3 transactions per budget category, budget-limit alerts shown when adding/editing a transaction
 - **Pots** — CRUD, deposit/withdraw with balance validation, progress toward savings goal
 - **Recurring Bills** — CRUD, search and sort, current-month payment status (Paid / Due / Overdue), automatic detection of recurring payment patterns from transaction history
+- Currency switcher (USD/EUR/GBP), applied app-wide and persisted to localStorage
 - Form validation throughout (Zod on both client and server)
 - Keyboard navigation (sortable table headers, arrow-key pagination, modals close on Escape and trap focus)
+- Accessible confirmation dialogs for all delete actions (no native `window.confirm`)
 
 ## Tech Stack
 
@@ -24,6 +28,7 @@ A full-stack personal finance manager with transaction tracking, budget manageme
 
 ```
 personal-finance-app/
+├── .github/workflows/ci.yml CI: lint + test on every push/PR to master
 ├── server/                  Express API
 │   ├── prisma/
 │   │   ├── schema.prisma    Database schema
@@ -41,8 +46,9 @@ personal-finance-app/
         ├── test/setup.js    Vitest + Testing Library setup (jest-dom matchers, cleanup)
         ├── api/client.js    Axios calls to the backend
         ├── pages/           One page per route
-        ├── components/      One folder per feature (transactions, budgets, pots, recurringBills, layout) — key components have a *.test.jsx next to them
-        ├── hooks/           Shared hooks (useModal.js — Escape-to-close + focus trap for all modals, with useModal.test.jsx)
+        ├── components/      One folder per feature (transactions, budgets, pots, recurringBills, layout, shared) — key components have a *.test.jsx next to them
+        ├── context/         CurrencyProvider — app-wide currency selection (USD/EUR/GBP), persisted to localStorage
+        ├── hooks/           Shared hooks (useModal.js — Escape-to-close + focus trap for all modals, with useModal.test.jsx; useCurrency.js)
         └── stylesheets/      All CSS lives here, one file per page/shared concern
 ```
 
@@ -161,6 +167,15 @@ npm test
 ```
 
 Runs unit tests for `useModal` (focus trap, Escape-to-close) and component tests for `PotCard`, `BudgetCard`, and `RecurringBillsTable`. No backend or database needed — these render components in isolation with mocked props.
+
+## Continuous Integration
+
+Every push and pull request to `master` runs [`.github/workflows/ci.yml`](.github/workflows/ci.yml), with two jobs in parallel:
+
+- **client** — `npm run lint` (ESLint) and `npm test` (Vitest + Testing Library)
+- **server** — `npm test` against a disposable PostgreSQL 16 service container (migrations applied automatically via the `pretest` script, same as local dev)
+
+Both jobs must pass before a PR is mergeable. No local setup is required to benefit from this — it runs entirely on GitHub's infrastructure.
 
 ## Scripts
 
