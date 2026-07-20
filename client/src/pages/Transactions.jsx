@@ -5,6 +5,7 @@ import {
   createTransaction,
   updateTransaction,
   deleteTransaction,
+  importTransactions,
   getAccounts,
   getCategories,
 } from "../api/client";
@@ -12,6 +13,8 @@ import TransactionFilters from "../components/transactions/TransactionFilters";
 import TransactionTable from "../components/transactions/TransactionTable";
 import Pagination from "../components/transactions/Pagination";
 import TransactionFormModal from "../components/transactions/TransactionFormModal";
+import ImportCsvModal from "../components/transactions/ImportCsvModal";
+import ConfirmDialog from "../components/shared/ConfirmDialog";
 import useCurrency from "../hooks/useCurrency";
 import "../stylesheets/Transactions.css";
 
@@ -26,6 +29,8 @@ function Transactions() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState(null);
   const [budgetAlert, setBudgetAlert] = useState(null);
+  const [isImportOpen, setIsImportOpen] = useState(false);
+  const [confirmTarget, setConfirmTarget] = useState(null);
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["transactions", { page, search, category, sortBy, order }],
@@ -68,6 +73,13 @@ function Transactions() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["transactions"] }),
   });
 
+  const importMutation = useMutation({
+    mutationFn: importTransactions,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+    },
+  });
+
   function handleSort(field) {
     if (sortBy === field) {
       setOrder(order === "asc" ? "desc" : "asc");
@@ -94,9 +106,12 @@ function Transactions() {
   }
 
   function handleDelete(transaction) {
-    if (window.confirm(`Delete "${transaction.description}"?`)) {
-      deleteMutation.mutate(transaction.id);
-    }
+    setConfirmTarget(transaction);
+  }
+
+  function handleConfirmDelete() {
+    deleteMutation.mutate(confirmTarget.id);
+    setConfirmTarget(null);
   }
 
   function handleFormSubmit(formData) {
@@ -112,6 +127,30 @@ function Transactions() {
     setEditingTransaction(null);
   }
 
+  function getImportResult() {
+    if (importMutation.data) return importMutation.data;
+    if (importMutation.isError) {
+      const data = importMutation.error.response?.data;
+      if (data && Array.isArray(data.errors)) return data;
+    }
+    return null;
+  }
+
+  function getImportError() {
+    if (importMutation.isError) {
+      const data = importMutation.error.response?.data;
+      if (data && !Array.isArray(data.errors)) {
+        return data.error ?? "Import failed.";
+      }
+    }
+    return null;
+  }
+
+  function handleCloseImport() {
+    setIsImportOpen(false);
+    importMutation.reset();
+  }
+
   if (isLoading) return <p>Loading...</p>;
   if (isError) return <p>Failed to load transactions.</p>;
 
@@ -119,14 +158,17 @@ function Transactions() {
     <div className="transactions-page">
       <div className="transactions-header">
         <h2>Transactions</h2>
-        <button
-          onClick={() => {
-            setEditingTransaction(null);
-            setIsFormOpen(true);
-          }}
-        >
-          + Add Transaction
-        </button>
+        <div className="transactions-header-actions">
+          <button onClick={() => setIsImportOpen(true)}>Import CSV</button>
+          <button
+            onClick={() => {
+              setEditingTransaction(null);
+              setIsFormOpen(true);
+            }}
+          >
+            + Add Transaction
+          </button>
+        </div>
       </div>
 
       {budgetAlert && (
@@ -171,6 +213,26 @@ function Transactions() {
           initialData={editingTransaction}
           onSubmit={handleFormSubmit}
           onClose={handleCloseForm}
+        />
+      )}
+
+      {isImportOpen && (
+        <ImportCsvModal
+          accounts={accounts ?? []}
+          onImport={(formData) => importMutation.mutate(formData)}
+          onClose={handleCloseImport}
+          isImporting={importMutation.isPending}
+          result={getImportResult()}
+          error={getImportError()}
+        />
+      )}
+
+      {confirmTarget && (
+        <ConfirmDialog
+          title="Delete Transaction"
+          message={`Delete "${confirmTarget.description}"?`}
+          onConfirm={handleConfirmDelete}
+          onCancel={() => setConfirmTarget(null)}
         />
       )}
     </div>

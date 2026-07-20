@@ -4,6 +4,7 @@ import { getPots, createPot, updatePot, deletePot, depositToPot, withdrawFromPot
 import PotCard from "../components/pots/PotCard";
 import PotFormModal from "../components/pots/PotFormModal";
 import PotMoneyModal from "../components/pots/PotMoneyModal";
+import ConfirmDialog from "../components/shared/ConfirmDialog";
 import "../stylesheets/Pots.css";
 
 function Pots() {
@@ -12,6 +13,7 @@ function Pots() {
   const [editingPot, setEditingPot] = useState(null);
   const [moneyModal, setMoneyModal] = useState(null);
   const [moneyError, setMoneyError] = useState("");
+  const [confirmTarget, setConfirmTarget] = useState(null);
 
   const { data: pots, isLoading } = useQuery({ queryKey: ["pots"], queryFn: getPots });
 
@@ -71,9 +73,12 @@ function Pots() {
   }
 
   function handleDelete(pot) {
-    if (window.confirm(`Delete the "${pot.name}" pot?`)) {
-      deleteMutation.mutate(pot.id);
-    }
+    setConfirmTarget(pot);
+  }
+
+  function handleConfirmDelete() {
+    deleteMutation.mutate(confirmTarget.id);
+    setConfirmTarget(null);
   }
 
   function handleFormSubmit(formData) {
@@ -141,6 +146,15 @@ function Pots() {
           onSubmit={handleMoneySubmit}
           onClose={() => setMoneyModal(null)}
           error={moneyError}
+        />
+      )}
+
+      {confirmTarget && (
+        <ConfirmDialog
+          title="Delete Pot"
+          message={`Delete the "${confirmTarget.name}" pot?`}
+          onConfirm={handleConfirmDelete}
+          onCancel={() => setConfirmTarget(null)}
         />
       )}
     </div>

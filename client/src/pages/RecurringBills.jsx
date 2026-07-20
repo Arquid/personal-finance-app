@@ -10,6 +10,7 @@ import {
 } from "../api/client";
 import RecurringBillsTable from "../components/recurringBills/RecurringBillsTable";
 import RecurringBillFormModal from "../components/recurringBills/RecurringBillFormModal";
+import ConfirmDialog from "../components/shared/ConfirmDialog";
 import "../stylesheets/RecurringBills.css";
 
 function RecurringBills() {
@@ -21,6 +22,7 @@ function RecurringBills() {
   const [editingBill, setEditingBill] = useState(null);
   const [prefillData, setPrefillData] = useState(null);
   const [showDetected, setShowDetected] = useState(false);
+  const [confirmTarget, setConfirmTarget] = useState(null);
 
   const { data: bills, isLoading } = useQuery({
     queryKey: ["recurring-bills"],
@@ -98,9 +100,12 @@ function RecurringBills() {
   }
 
   function handleDelete(bill) {
-    if (window.confirm(`Delete the "${bill.name}" recurring bill?`)) {
-      deleteMutation.mutate(bill.id);
-    }
+    setConfirmTarget(bill);
+  }
+
+  function handleConfirmDelete() {
+    deleteMutation.mutate(confirmTarget.id);
+    setConfirmTarget(null);
   }
 
   function handleFormSubmit(formData) {
@@ -210,6 +215,15 @@ function RecurringBills() {
           prefillData={prefillData}
           onSubmit={handleFormSubmit}
           onClose={handleCloseForm}
+        />
+      )}
+
+      {confirmTarget && (
+        <ConfirmDialog
+          title="Delete Recurring Bill"
+          message={`Delete the "${confirmTarget.name}" recurring bill?`}
+          onConfirm={handleConfirmDelete}
+          onCancel={() => setConfirmTarget(null)}
         />
       )}
     </div>

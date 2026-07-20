@@ -11,12 +11,14 @@ import {
 } from "../api/client";
 import BudgetCard from "../components/budgets/BudgetCard";
 import BudgetFormModal from "../components/budgets/BudgetFormModal";
+import ConfirmDialog from "../components/shared/ConfirmDialog";
 import "../stylesheets/Budgets.css";
 
 function Budgets() {
   const queryClient = useQueryClient();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingBudget, setEditingBudget] = useState(null);
+  const [confirmTarget, setConfirmTarget] = useState(null);
 
   const { data: budgets, isLoading } = useQuery({ queryKey: ["budgets"], queryFn: getBudgets });
   const { data: budgetVsActual } = useQuery({
@@ -86,9 +88,12 @@ function Budgets() {
   }
 
   function handleDelete(budget) {
-    if (window.confirm(`Delete the "${budget.category}" budget?`)) {
-      deleteMutation.mutate(budget.id);
-    }
+    setConfirmTarget(budget);
+  }
+
+  function handleConfirmDelete() {
+    deleteMutation.mutate(confirmTarget.id);
+    setConfirmTarget(null);
   }
 
   function handleFormSubmit(formData) {
@@ -130,6 +135,15 @@ function Budgets() {
           initialData={editingBudget}
           onSubmit={handleFormSubmit}
           onClose={handleCloseForm}
+        />
+      )}
+
+      {confirmTarget && (
+        <ConfirmDialog
+          title="Delete Budget"
+          message={`Delete the "${confirmTarget.category}" budget?`}
+          onConfirm={handleConfirmDelete}
+          onCancel={() => setConfirmTarget(null)}
         />
       )}
     </div>

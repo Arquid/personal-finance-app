@@ -70,6 +70,12 @@
   border: none;
 }
 
+.modal-actions button.danger {
+  background: #dc2626;
+  color: white;
+  border: none;
+}
+
 .progress-bar {
   height: 8px;
   background: #eef0f2;
