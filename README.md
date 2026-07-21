@@ -29,6 +29,8 @@ A full-stack personal finance manager with transaction tracking, budget manageme
 ```
 personal-finance-app/
 ├── .github/workflows/ci.yml CI: lint + test on every push/PR to master
+├── docker-compose.yml       Local PostgreSQL (dev + test databases), no manual install needed
+├── docker/init-test-db.sql  Creates finance_test_db on first container start
 ├── server/                  Express API
 │   ├── prisma/
 │   │   ├── schema.prisma    Database schema
@@ -47,7 +49,7 @@ personal-finance-app/
         ├── api/client.js    Axios calls to the backend
         ├── pages/           One page per route
         ├── components/      One folder per feature (transactions, budgets, pots, recurringBills, layout, shared) — key components have a *.test.jsx next to them
-        ├── context/         CurrencyProvider — app-wide currency selection (USD/EUR/GBP), persisted to localStorage
+        ├── context/         CurrencyProvider — app-wide currency selection (USD/EUR/GBP), persisted to localStorage, with CurrencyProvider.test.jsx
         ├── hooks/           Shared hooks (useModal.js — Escape-to-close + focus trap for all modals, with useModal.test.jsx; useCurrency.js)
         └── stylesheets/      All CSS lives here, one file per page/shared concern
 ```
@@ -56,7 +58,7 @@ personal-finance-app/
 
 - Node.js 20+
 - Git
-- PostgreSQL 13+ — see installation instructions below if you don't have it yet
+- Either **Docker** (recommended — spins up PostgreSQL for you) or a local **PostgreSQL 13+** install — see step 2 below
 
 ## Setup
 
@@ -69,12 +71,19 @@ cd personal-finance-app
 
 ### 2. Database
 
-**Install PostgreSQL** if you don't already have it running:
+**Option A — Docker Compose (recommended, no local PostgreSQL install needed):**
 
-- **Windows/Mac/Linux:** download the installer from [postgresql.org/download](https://www.postgresql.org/download/) and run it (default port `5432` is fine). This also installs `psql`, the command-line client used below.
-- **Docker (any OS):** `docker run --name finance-postgres -e POSTGRES_PASSWORD=postgres -p 5432:5432 -d postgres:16`
+```bash
+docker compose up -d
+```
 
-**Create the app's database and user.** Connect as the PostgreSQL superuser (`postgres`) using `psql` — either from a terminal (on Windows, if `psql` isn't on your PATH, run it from `C:\Program Files\PostgreSQL\<version>\bin\psql.exe`) or via a GUI client like pgAdmin:
+This starts a PostgreSQL 16 container with `finance_user` / `finance_pass` already configured, and creates both `finance_db` (dev) and `finance_test_db` (test) databases on first startup. Skip ahead to step 3 — `finance_user` already has full rights on both databases (including for Prisma's migration shadow database).
+
+**Option B — Install PostgreSQL locally:**
+
+- Download the installer from [postgresql.org/download](https://www.postgresql.org/download/) and run it (default port `5432` is fine). This also installs `psql`, the command-line client used below.
+
+Connect as the PostgreSQL superuser (`postgres`) using `psql` — either from a terminal (on Windows, if `psql` isn't on your PATH, run it from `C:\Program Files\PostgreSQL\<version>\bin\psql.exe`) or via a GUI client like pgAdmin:
 
 ```bash
 psql -U postgres
@@ -96,14 +105,10 @@ The last line grants `CREATEDB`, which Prisma needs for its shadow database duri
 ```bash
 cd server
 npm install
+cp .env.example .env
 ```
 
-Create `server/.env`:
-
-```
-DATABASE_URL="postgresql://finance_user:finance_pass@localhost:5432/finance_db"
-PORT=4000
-```
+The defaults in `.env.example` already match the database and user from step 2, so no editing is needed unless you changed something there.
 
 Run the migration and seed sample data:
 
@@ -136,19 +141,21 @@ The app runs at `http://localhost:5173`.
 
 Backend tests need their own database, kept separate from your dev data (tests wipe/create rows as they run).
 
-Create it the same way as the dev database (step 2 above), just with a different name:
+If you used **Docker Compose** in step 2, `finance_test_db` already exists — just create the env file:
+
+```bash
+cd server
+cp .env.test.example .env.test
+```
+
+If you installed PostgreSQL **locally**, create the database the same way as the dev database (step 2), just with a different name:
 
 ```sql
 CREATE DATABASE finance_test_db OWNER finance_user;
 GRANT ALL PRIVILEGES ON DATABASE finance_test_db TO finance_user;
 ```
 
-Create `server/.env.test`:
-
-```
-DATABASE_URL="postgresql://finance_user:finance_pass@localhost:5432/finance_test_db"
-PORT=4000
-```
+then copy the env file as above.
 
 Run the tests:
 
@@ -157,7 +164,7 @@ cd server
 npm test
 ```
 
-This automatically migrates the test database first (`pretest` script), then runs both the unit tests (Zod schemas, `recurringBillStatus.js` — no DB needed) and the integration tests (Supertest against the real Express app, including a test that fires 10 concurrent pot withdrawals to verify the balance can never go negative).
+This automatically migrates the test database first (`pretest` script), then runs both the unit tests (Zod schemas, `recurringBillStatus.js` — no DB needed) and the integration tests (Supertest against the real Express app) for every resource — accounts, transactions, budgets, pots, recurring bills, and reports — including a test that fires 10 concurrent pot withdrawals to verify the balance can never go negative, and tests that verify the reporting endpoints' raw SQL (`GROUP BY` aggregation and the `ROW_NUMBER() OVER (PARTITION BY ...)` window function).
 
 ### Frontend
 
@@ -166,7 +173,7 @@ cd client
 npm test
 ```
 
-Runs unit tests for `useModal` (focus trap, Escape-to-close) and component tests for `PotCard`, `BudgetCard`, and `RecurringBillsTable`. No backend or database needed — these render components in isolation with mocked props.
+Runs unit tests for `useModal` (focus trap, Escape-to-close) and `CurrencyProvider` (currency switching, localStorage persistence), and component tests for `PotCard`, `BudgetCard`, `RecurringBillsTable`, and `ConfirmDialog`. No backend or database needed — these render components in isolation with mocked props.
 
 ## Continuous Integration
 
