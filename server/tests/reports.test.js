@@ -29,17 +29,28 @@ describe("Reports API", () => {
     }
   });
 
-  it("returns an overview whose totalBalance matches the sum of account balances", async () => {
-    const [overviewRes, accountsRes] = await Promise.all([
-      request(app).get("/api/reports/overview"),
-      request(app).get("/api/accounts"),
-    ]);
-    expect(overviewRes.status).toBe(200);
-    const expectedTotal = accountsRes.body.reduce((sum, a) => sum + Number(a.balance), 0);
-    expect(overviewRes.body.totalBalance).toBeCloseTo(expectedTotal, 2);
-    expect(Array.isArray(overviewRes.body.latestTransactions)).toBe(true);
-    expect(typeof overviewRes.body.monthlyIncome).toBe("number");
-    expect(typeof overviewRes.body.monthlyExpenses).toBe("number");
+  it("reflects a newly created account's balance in the overview", async () => {
+    // Regression-safe by design: this asserts against an account this test
+    // just created, not against a live sum of the whole accounts table.
+    // Other test files run in parallel against the same database and freely
+    // create/delete accounts, so comparing two separate full-table snapshots
+    // (one from /reports/overview, one from /accounts) would be flaky.
+    const account = await prisma.account.create({
+      data: { name: `Overview Test Account ${Date.now()}`, type: "checking", balance: 250 },
+    });
+    accountId = account.id;
+
+    const res = await request(app).get("/api/reports/overview");
+    expect(res.status).toBe(200);
+    expect(typeof res.body.totalBalance).toBe("number");
+
+    const entry = res.body.accounts.find((a) => a.id === accountId);
+    expect(entry).toBeDefined();
+    expect(Number(entry.balance)).toBe(250);
+
+    expect(Array.isArray(res.body.latestTransactions)).toBe(true);
+    expect(typeof res.body.monthlyIncome).toBe("number");
+    expect(typeof res.body.monthlyExpenses).toBe("number");
   });
 
   it("groups this month's spending by category", async () => {
