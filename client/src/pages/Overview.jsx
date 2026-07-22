@@ -11,10 +11,16 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
+  ComposedChart,
+  Line,
 } from "recharts";
-import { getOverview, getSpendingByCategory, getBudgetVsActual } from "../api/client";
+import { getOverview, getSpendingByCategory, getBudgetVsActual, getMonthlyTrend } from "../api/client";
 import useCurrency from "../hooks/useCurrency";
-import "../stylesheets/Overview.css"
+import "../stylesheets/Overview.css";
+
+function formatMonthLabel(value) {
+  return new Date(value).toLocaleDateString("en-US", { month: "short", year: "numeric" });
+}
 
 function Overview() {
   const { formatCurrency } = useCurrency();
@@ -29,6 +35,10 @@ function Overview() {
   const { data: budgetVsActual } = useQuery({
     queryKey: ["budget-vs-actual"],
     queryFn: getBudgetVsActual,
+  });
+  const { data: trend } = useQuery({
+    queryKey: ["monthly-trend"],
+    queryFn: getMonthlyTrend,
   });
 
   if (isLoading) return <p>Loading...</p>;
@@ -105,6 +115,32 @@ function Overview() {
       </div>
 
       <div className="overview-grid">
+        <section className="panel panel-wide">
+          <h3>Monthly Trend</h3>
+          {trend && trend.length > 0 ? (
+            <ResponsiveContainer width="100%" height={280}>
+              <ComposedChart data={trend}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" tickFormatter={formatMonthLabel} />
+                <YAxis />
+                <Tooltip labelFormatter={formatMonthLabel} formatter={(value) => formatCurrency(value)} />
+                <Legend />
+                <Bar dataKey="income" name="Income" fill="#16a34a" />
+                <Bar dataKey="expenses" name="Expenses" fill="#dc2626" />
+                <Line
+                  type="monotone"
+                  dataKey="runningExpenses"
+                  name="Cumulative Expenses"
+                  stroke="#6c5ce7"
+                  strokeWidth={2}
+                  dot={false}
+                />
+              </ComposedChart>
+            </ResponsiveContainer>
+          ) : (
+            <p>Not enough data yet.</p>
+          )}
+        </section>
         <section className="panel">
           <h3>Pots</h3>
           <ul className="pot-list">
