@@ -107,29 +107,3 @@
   font-size: 14px;
   margin: -4px 0 8px;
 }
-
-.color-picker {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  padding: 4px 0;
-}
-
-.color-swatch {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  border: 2px solid transparent;
-  cursor: pointer;
-  padding: 0;
-}
-
-.color-swatch:focus-visible {
-  outline: 2px solid #201f24;
-  outline-offset: 2px;
-}
-
-.color-swatch.selected {
-  border-color: #201f24;
-  box-shadow: 0 0 0 2px white inset;
-}

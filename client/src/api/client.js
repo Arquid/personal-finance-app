@@ -50,5 +50,6 @@ export const getLatestByCategory = () =>
 export const getMonthlyTrend = () => api.get("/reports/monthly-trend").then((r) => r.data);
 
 export const getCategories = () => api.get("/categories").then((r) => r.data);
+export const createCategory = (data) => api.post("/categories", data).then((r) => r.data);
 
 export default api;
