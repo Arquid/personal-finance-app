@@ -52,11 +52,41 @@ describe("Transactions API", () => {
   });
 
   it("falls back to the default sort instead of crashing on an unwhitelisted sortBy", async () => {
-    // Regression test: sortBy is used directly as a Prisma orderBy key, so it
-    // must be whitelisted rather than passed through unchecked.
     const res = await request(app)
       .get("/api/transactions")
       .query({ sortBy: "'; DROP TABLE", accountId });
     expect(res.status).toBe(200);
+  });
+
+  it("exports transactions as CSV with a header row and one row per transaction", async () => {
+    const res = await request(app).get("/api/transactions/export").query({ accountId });
+    expect(res.status).toBe(200);
+    expect(res.headers["content-type"]).toMatch(/text\/csv/);
+    const lines = res.text.trim().split("\n");
+    expect(lines[0]).toBe("date,description,merchant,amount,category");
+    expect(lines.length).toBe(4);
+  });
+
+  it("applies the same search filter as the list endpoint", async () => {
+    const res = await request(app)
+      .get("/api/transactions/export")
+      .query({ accountId, search: "Integration test transaction 1" });
+    expect(res.status).toBe(200);
+    const lines = res.text.trim().split("\n");
+    expect(lines.length).toBe(2);
+    expect(lines[1]).toContain("Integration test transaction 1");
+  });
+
+  it("quotes a description that contains a comma", async () => {
+    const tx = await prisma.transaction.create({
+      data: { amount: -5, description: "Coffee, tea, and snacks", date: new Date(), accountId },
+    });
+    createdIds.push(tx.id);
+
+    const res = await request(app)
+      .get("/api/transactions/export")
+      .query({ accountId, search: "Coffee, tea" });
+    expect(res.status).toBe(200);
+    expect(res.text).toContain('"Coffee, tea, and snacks"');
   });
 });

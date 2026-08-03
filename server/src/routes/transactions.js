@@ -13,6 +13,42 @@ const { getBudgetAlert } = require("../utils/budgetAlert");
 
 const SORTABLE_FIELDS = ["date", "amount", "description", "merchant"];
 
+function buildTransactionWhere({ search, category, accountId }) {
+  return {
+    AND: [
+      search
+        ? {
+            OR: [
+              { description: { contains: search, mode: "insensitive" } },
+              { merchant: { contains: search, mode: "insensitive" } },
+            ],
+          }
+        : {},
+      category ? { category: { name: category } } : {},
+      accountId ? { accountId: Number(accountId) } : {},
+    ],
+  };
+}
+
+function escapeCsvField(value) {
+  const str = String(value ?? "");
+  return /[",\n]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
+}
+
+function transactionsToCsv(transactions) {
+  const header = "date,description,merchant,amount,category";
+  const rows = transactions.map((t) =>
+    [
+      new Date(t.date).toISOString().slice(0, 10),
+      escapeCsvField(t.description),
+      escapeCsvField(t.merchant ?? ""),
+      Number(t.amount),
+      escapeCsvField(t.category?.name ?? ""),
+    ].join(","),
+  );
+  return [header, ...rows].join("\n");
+}
+
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 2 * 1024 * 1024 }, // 2MB
@@ -34,20 +70,7 @@ router.get("/", async (req, res, next) => {
     const order = req.query.order === "asc" ? "asc" : "desc";
     const { category, accountId } = req.query;
 
-    const where = {
-      AND: [
-        search
-          ? {
-              OR: [
-                { description: { contains: search, mode: "insensitive" } },
-                { merchant: { contains: search, mode: "insensitive" } },
-              ],
-            }
-          : {},
-        category ? { category: { name: category } } : {},
-        accountId ? { accountId: Number(accountId) } : {},
-      ],
-    };
+    const where = buildTransactionWhere({ search, category, accountId });
 
     const [transactions, total] = await Promise.all([
       prisma.transaction.findMany({
@@ -69,6 +92,29 @@ router.get("/", async (req, res, next) => {
         totalPages: Math.max(1, Math.ceil(total / limit)),
       },
     });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get("/export", async (req, res, next) => {
+  try {
+    const search = (req.query.search || "").trim();
+    const sortBy = SORTABLE_FIELDS.includes(req.query.sortBy) ? req.query.sortBy : "date";
+    const order = req.query.order === "asc" ? "asc" : "desc";
+    const { category, accountId } = req.query;
+    const where = buildTransactionWhere({ search, category, accountId });
+
+    const transactions = await prisma.transaction.findMany({
+      where,
+      include: { category: true },
+      orderBy: { [sortBy]: order },
+    });
+
+    const csv = transactionsToCsv(transactions);
+    res.setHeader("Content-Type", "text/csv");
+    res.setHeader("Content-Disposition", 'attachment; filename="transactions.csv"');
+    res.send(csv);
   } catch (err) {
     next(err);
   }

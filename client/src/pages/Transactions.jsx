@@ -151,6 +151,15 @@ function Transactions() {
     importMutation.reset();
   }
 
+  function getExportUrl() {
+    const params = new URLSearchParams();
+    if (search) params.set("search", search);
+    if (category) params.set("category", category);
+    params.set("sortBy", sortBy);
+    params.set("order", order);
+    return `http://localhost:4000/api/transactions/export?${params.toString()}`;
+  }
+
   if (isLoading) return <p>Loading...</p>;
   if (isError) return <p>Failed to load transactions.</p>;
 
@@ -159,6 +168,9 @@ function Transactions() {
       <div className="transactions-header">
         <h2>Transactions</h2>
         <div className="transactions-header-actions">
+          <a href={getExportUrl()} download="transactions.csv">
+            Export CSV
+          </a>
           <button onClick={() => setIsImportOpen(true)}>Import CSV</button>
           <button
             onClick={() => {

@@ -6,11 +6,12 @@ A full-stack personal finance manager with transaction tracking, budget manageme
 
 ## Features
 
-- **Overview dashboard** — total balance, monthly income/expenses, spending-by-category donut chart, budget vs. actual bar chart, pot progress, latest transactions
-- **Transactions** — paginated (10/page), searchable, sortable, filterable by category; full CRUD; CSV import with per-row validation
+- **Overview dashboard** — total balance, monthly income/expenses, spending-by-category donut chart, budget vs. actual bar chart, monthly trend chart (income/expenses per month plus a cumulative-expenses line, powered by a `ROW_NUMBER()`-style running-total SQL window function), pot progress, latest transactions
+- **Transactions** — paginated (10/page), searchable, sortable, filterable by category; full CRUD; CSV import with per-row validation; CSV export (respects the current search/category filters)
 - **Budgets** — CRUD per category, progress bars with over/warning/ok status, latest 3 transactions per budget category, budget-limit alerts shown when adding/editing a transaction
 - **Pots** — CRUD, deposit/withdraw with balance validation, progress toward savings goal
 - **Recurring Bills** — CRUD, search and sort, current-month payment status (Paid / Due / Overdue), automatic detection of recurring payment patterns from transaction history
+- **Custom categories** — create new categories on the fly from the transaction form, no need to pre-seed them
 - Currency switcher (USD/EUR/GBP), applied app-wide and persisted to localStorage
 - Form validation throughout (Zod on both client and server)
 - Keyboard navigation (sortable table headers, arrow-key pagination, modals close on Escape and trap focus)
@@ -36,6 +37,7 @@ personal-finance-app/
 │   │   ├── schema.prisma    Database schema
 │   │   └── seed.js          Sample data generator
 │   ├── tests/               Integration tests (Supertest, hit the real API + test DB)
+│   ├── vitest.config.js     fileParallelism: false — tests share one real DB
 │   └── src/
 │       ├── app.js           Express app (routes, middleware) — no listen(), used by tests
 │       ├── index.js         Loads .env and starts app.js listening
@@ -164,7 +166,9 @@ cd server
 npm test
 ```
 
-This automatically migrates the test database first (`pretest` script), then runs both the unit tests (Zod schemas, `recurringBillStatus.js` — no DB needed) and the integration tests (Supertest against the real Express app) for every resource — accounts, transactions, budgets, pots, recurring bills, and reports — including a test that fires 10 concurrent pot withdrawals to verify the balance can never go negative, and tests that verify the reporting endpoints' raw SQL (`GROUP BY` aggregation and the `ROW_NUMBER() OVER (PARTITION BY ...)` window function).
+This automatically migrates the test database first (`pretest` script), then runs both the unit tests (Zod schemas, `recurringBillStatus.js` — no DB needed) and the integration tests (Supertest against the real Express app) for every resource — accounts, transactions, budgets, pots, recurring bills, categories, and reports — including a test that fires 10 concurrent pot withdrawals to verify the balance can never go negative, tests that verify the reporting endpoints' raw SQL (`GROUP BY` aggregation and the `ROW_NUMBER() OVER (PARTITION BY ...)` window function), and tests for the CSV export endpoint (filtering, and correct quoting of fields containing commas).
+
+Test files run sequentially rather than in parallel (`fileParallelism: false` in `vitest.config.js`) since they all share one real database — this trades a bit of speed for full determinism, since a test that reads across an entire table would otherwise race against other files' concurrent writes.
 
 ### Frontend
 
@@ -214,14 +218,14 @@ All endpoints are prefixed with `/api`.
 | Resource | Endpoints |
 |---|---|
 | Accounts | `GET/POST /accounts`, `GET/PUT/DELETE /accounts/:id` |
-| Transactions | `GET/POST /transactions`, `GET/PUT/DELETE /transactions/:id`, `POST /transactions/import` (CSV) |
+| Transactions | `GET/POST /transactions`, `GET/PUT/DELETE /transactions/:id`, `POST /transactions/import` (CSV), `GET /transactions/export` (CSV) |
 | Budgets | `GET/POST /budgets`, `GET/PUT/DELETE /budgets/:id` |
 | Pots | `GET/POST /pots`, `GET/PUT/DELETE /pots/:id`, `POST /pots/:id/deposit`, `POST /pots/:id/withdraw` |
 | Recurring Bills | `GET/POST /recurring-bills`, `GET/PUT/DELETE /recurring-bills/:id`, `GET /recurring-bills/detect` |
-| Categories | `GET /categories` |
+| Categories | `GET /categories`, `POST /categories` (creates a custom category) |
 | Reports | `GET /reports/overview`, `GET /reports/spending-by-category`, `GET /reports/budget-vs-actual`, `GET /reports/latest-by-category`, `GET /reports/monthly-trend` |
 
-`GET /transactions` supports `page`, `limit`, `search`, `category`, `accountId`, `sortBy`, `order` query parameters.
+`GET /transactions` supports `page`, `limit`, `search`, `category`, `accountId`, `sortBy`, `order` query parameters. `GET /transactions/export` accepts the same `search`/`category`/`accountId`/`sortBy`/`order` filters (no pagination) and returns a CSV file.
 
 ## Notes
 
