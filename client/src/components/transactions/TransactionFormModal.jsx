@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import useModal from "../../hooks/useModal";
-import { createCategory } from "../../api/client";
+import { createCategory, suggestCategoryForMerchant } from "../../api/client";
 
 const schema = z.object({
   type: z.enum(["expense", "income"]),
@@ -27,12 +27,14 @@ function TransactionFormModal({ accounts, categories, initialData, onSubmit, onC
   const { containerRef, headingId } = useModal(onClose);
   const queryClient = useQueryClient();
   const [isAddingCategory, setIsAddingCategory] = useState(false);
+  const [suggestion, setSuggestion] = useState(null);
 
   const {
     register,
     handleSubmit,
     reset,
     setValue,
+    watch,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(schema),
@@ -61,10 +63,6 @@ function TransactionFormModal({ accounts, categories, initialData, onSubmit, onC
   const createCategoryMutation = useMutation({
     mutationFn: createCategory,
     onSuccess: (newCategory) => {
-      // Update the cache directly instead of invalidating: invalidateQueries
-      // only schedules a refetch, so the new option wouldn't exist in the
-      // <select> yet at the moment setValue runs below, and the selection
-      // would silently fail to stick.
       queryClient.setQueryData(["categories"], (old) =>
         old
           ? [...old, newCategory].sort((a, b) => a.name.localeCompare(b.name))
@@ -76,6 +74,27 @@ function TransactionFormModal({ accounts, categories, initialData, onSubmit, onC
       createCategoryMutation.reset();
     },
   });
+
+  const merchantValue = watch("merchant");
+  const categoryIdValue = watch("categoryId");
+
+  useEffect(() => {
+    if (!merchantValue || merchantValue.trim().length < 2 || categoryIdValue) {
+      setSuggestion(null);
+      return;
+    }
+    const timer = setTimeout(() => {
+      suggestCategoryForMerchant(merchantValue.trim())
+        .then((result) => setSuggestion(result))
+        .catch(() => setSuggestion(null));
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [merchantValue, categoryIdValue]);
+
+  function applySuggestion() {
+    setValue("categoryId", String(suggestion.categoryId));
+    setSuggestion(null);
+  }
 
   function getCategoryError() {
     if (!createCategoryMutation.isError) return null;
@@ -242,6 +261,15 @@ function TransactionFormModal({ accounts, categories, initialData, onSubmit, onC
                 + New
               </button>
             </div>
+            {suggestion && (
+              <p className="category-suggestion">
+                Suggested: <strong>{suggestion.categoryName}</strong> (used {suggestion.count} time
+                {suggestion.count === 1 ? "" : "s"} for this merchant).{" "}
+                <button type="button" onClick={applySuggestion}>
+                  Use
+                </button>
+              </p>
+            )}
           </label>
 
           <div className="modal-actions">

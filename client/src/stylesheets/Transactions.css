@@ -60,6 +60,22 @@
   color: #dc2626;
 }
 
+.category-suggestion {
+  font-size: 12px;
+  color: #6b7280;
+  margin: 4px 0 0;
+}
+
+.category-suggestion button {
+  background: none;
+  border: none;
+  color: #6c5ce7;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 0;
+  text-decoration: underline;
+}
+
 .budget-alert-banner {
   display: flex;
   justify-content: space-between;

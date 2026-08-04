@@ -89,4 +89,54 @@ describe("Transactions API", () => {
     expect(res.status).toBe(200);
     expect(res.text).toContain('"Coffee, tea, and snacks"');
   });
+
+    it("suggests the most-used category for a merchant", async () => {
+    const category = await prisma.category.create({
+      data: { name: `Suggest Category ${Date.now()}`, color: "#000000" },
+    });
+    const merchant = `Suggest Merchant ${Date.now()}`;
+
+    const tx1 = await prisma.transaction.create({
+      data: {
+        amount: -10,
+        description: "x",
+        merchant,
+        date: new Date(),
+        accountId,
+        categoryId: category.id,
+      },
+    });
+    const tx2 = await prisma.transaction.create({
+      data: {
+        amount: -12,
+        description: "y",
+        merchant,
+        date: new Date(),
+        accountId,
+        categoryId: category.id,
+      },
+    });
+
+    const res = await request(app).get("/api/transactions/suggest-category").query({ merchant });
+    expect(res.status).toBe(200);
+    expect(res.body.categoryId).toBe(category.id);
+    expect(res.body.categoryName).toBe(category.name);
+    expect(res.body.count).toBe(2);
+
+    await prisma.transaction.deleteMany({ where: { id: { in: [tx1.id, tx2.id] } } });
+    await prisma.category.delete({ where: { id: category.id } });
+  });
+
+  it("returns null when no transactions match the merchant", async () => {
+    const res = await request(app)
+      .get("/api/transactions/suggest-category")
+      .query({ merchant: `Nonexistent Merchant ${Date.now()}` });
+    expect(res.status).toBe(200);
+    expect(res.body).toBeNull();
+  });
+
+  it("rejects a missing merchant parameter", async () => {
+    const res = await request(app).get("/api/transactions/suggest-category");
+    expect(res.status).toBe(400);
+  });
 });

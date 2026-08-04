@@ -120,6 +120,34 @@ router.get("/export", async (req, res, next) => {
   }
 });
 
+router.get("/suggest-category", async (req, res, next) => {
+  try {
+    const merchant = (req.query.merchant || "").trim();
+    if (!merchant) return res.status(400).json({ error: "merchant is required" });
+
+    const grouped = await prisma.transaction.groupBy({
+      by: ["categoryId"],
+      where: { merchant: { equals: merchant, mode: "insensitive" }, categoryId: { not: null } },
+      _count: { categoryId: true },
+      orderBy: { _count: { categoryId: "desc" } },
+      take: 1,
+    });
+
+    if (grouped.length === 0) {
+      return res.json(null);
+    }
+
+    const category = await prisma.category.findUnique({ where: { id: grouped[0].categoryId } });
+    res.json({
+      categoryId: grouped[0].categoryId,
+      categoryName: category?.name ?? null,
+      count: grouped[0]._count.categoryId,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.get("/:id", async (req, res, next) => {
   try {
     const transaction = await prisma.transaction.findUnique({

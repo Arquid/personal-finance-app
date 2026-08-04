@@ -16,6 +16,8 @@ export const importTransactions = (formData) =>
   api.post("/transactions/import", formData, {
     headers: { "Content-Type": "multipart/form-data" },
   }).then((r) => r.data);
+export const suggestCategoryForMerchant = (merchant) =>
+  api.get("/transactions/suggest-category", { params: { merchant } }).then((r) => r.data);
 
 export const getBudgets = () => api.get("/budgets").then((r) => r.data);
 export const createBudget = (data) => api.post("/budgets", data).then((r) => r.data);
