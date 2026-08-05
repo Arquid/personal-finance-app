@@ -158,4 +158,104 @@ describe("Reports API", () => {
       expect(typeof res.body[0].runningExpenses).toBe("number");
     }
   });
+
+  it("flags a category whose current-month spending is far above its historical average", async () => {
+    const category = await prisma.category.create({
+      data: { name: `Unusual Category ${Date.now()}`, color: "#111111" },
+    });
+    categoryId = category.id;
+    const account = await prisma.account.create({
+      data: { name: `Unusual Account ${Date.now()}`, type: "checking", balance: 0 },
+    });
+    accountId = account.id;
+
+    const today = new Date();
+    for (let i = 1; i <= 2; i++) {
+      const tx = await prisma.transaction.create({
+        data: {
+          amount: -50,
+          description: "history",
+          date: new Date(today.getFullYear(), today.getMonth() - i, 10),
+          accountId,
+          categoryId,
+        },
+      });
+      transactionIds.push(tx.id);
+    }
+    const currentTx = await prisma.transaction.create({
+      data: { amount: -300, description: "spike", date: new Date(), accountId, categoryId },
+    });
+    transactionIds.push(currentTx.id);
+
+    const res = await request(app).get("/api/reports/unusual-spending");
+    expect(res.status).toBe(200);
+    const entry = res.body.find((r) => r.categoryId === categoryId);
+    expect(entry).toBeDefined();
+    expect(entry.currentTotal).toBe(300);
+    expect(entry.averageTotal).toBe(50);
+    expect(entry.percentageOfAverage).toBe(600);
+  });
+
+  it("does not flag a category with only one month of history", async () => {
+    const category = await prisma.category.create({
+      data: { name: `Insufficient History Category ${Date.now()}`, color: "#222222" },
+    });
+    categoryId = category.id;
+    const account = await prisma.account.create({
+      data: { name: `Insufficient History Account ${Date.now()}`, type: "checking", balance: 0 },
+    });
+    accountId = account.id;
+
+    const today = new Date();
+    const priorTx = await prisma.transaction.create({
+      data: {
+        amount: -20,
+        description: "history",
+        date: new Date(today.getFullYear(), today.getMonth() - 1, 10),
+        accountId,
+        categoryId,
+      },
+    });
+    const currentTx = await prisma.transaction.create({
+      data: { amount: -200, description: "spike", date: new Date(), accountId, categoryId },
+    });
+    transactionIds.push(priorTx.id, currentTx.id);
+
+    const res = await request(app).get("/api/reports/unusual-spending");
+    expect(res.status).toBe(200);
+    expect(res.body.find((r) => r.categoryId === categoryId)).toBeUndefined();
+  });
+
+  it("does not flag a category whose current spending is close to its average", async () => {
+    const category = await prisma.category.create({
+      data: { name: `Normal Category ${Date.now()}`, color: "#333333" },
+    });
+    categoryId = category.id;
+    const account = await prisma.account.create({
+      data: { name: `Normal Account ${Date.now()}`, type: "checking", balance: 0 },
+    });
+    accountId = account.id;
+
+    const today = new Date();
+    for (let i = 1; i <= 2; i++) {
+      const tx = await prisma.transaction.create({
+        data: {
+          amount: -50,
+          description: "history",
+          date: new Date(today.getFullYear(), today.getMonth() - i, 10),
+          accountId,
+          categoryId,
+        },
+      });
+      transactionIds.push(tx.id);
+    }
+    const currentTx = await prisma.transaction.create({
+      data: { amount: -55, description: "normal", date: new Date(), accountId, categoryId },
+    });
+    transactionIds.push(currentTx.id);
+
+    const res = await request(app).get("/api/reports/unusual-spending");
+    expect(res.status).toBe(200);
+    expect(res.body.find((r) => r.categoryId === categoryId)).toBeUndefined();
+  });
 });

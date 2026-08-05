@@ -38,6 +38,32 @@
   color: #dc2626;
 }
 
+.unusual-spending-banner {
+  background: #fee2e2;
+  color: #991b1b;
+  border-radius: 12px;
+  padding: 16px 20px;
+}
+
+.unusual-spending-banner h4 {
+  margin: 0 0 8px;
+  font-size: 14px;
+}
+
+.unusual-spending-banner ul {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 14px;
+}
+
+.unusual-spending-banner li {
+  margin-bottom: 4px;
+}
+
+.unusual-spending-banner li:last-child {
+  margin-bottom: 0;
+}
+
 .overview-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;

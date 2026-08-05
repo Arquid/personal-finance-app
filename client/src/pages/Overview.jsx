@@ -14,7 +14,13 @@ import {
   ComposedChart,
   Line,
 } from "recharts";
-import { getOverview, getSpendingByCategory, getBudgetVsActual, getMonthlyTrend } from "../api/client";
+import {
+  getOverview,
+  getSpendingByCategory,
+  getBudgetVsActual,
+  getMonthlyTrend,
+  getUnusualSpending,
+} from "../api/client";
 import useCurrency from "../hooks/useCurrency";
 import "../stylesheets/Overview.css";
 
@@ -40,6 +46,10 @@ function Overview() {
     queryKey: ["monthly-trend"],
     queryFn: getMonthlyTrend,
   });
+  const { data: unusualSpending } = useQuery({
+    queryKey: ["unusual-spending"],
+    queryFn: getUnusualSpending,
+  });
 
   if (isLoading) return <p>Loading...</p>;
   if (isError || !overview) return <p>Failed to load overview data.</p>;
@@ -60,7 +70,19 @@ function Overview() {
           <span className="card-value expense">{formatCurrency(overview.monthlyExpenses)}</span>
         </div>
       </div>
-
+      {unusualSpending && unusualSpending.length > 0 && (
+        <div className="unusual-spending-banner">
+          <h4>Unusual Spending Detected</h4>
+          <ul>
+            {unusualSpending.map((u) => (
+              <li key={u.categoryId}>
+                <strong>{u.category}</strong>: {formatCurrency(u.currentTotal)} this month vs. a
+                usual {formatCurrency(u.averageTotal)} ({u.percentageOfAverage}% of average)
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       <div className="overview-grid">
         <section className="panel">
           <h3>Spending by Category</h3>

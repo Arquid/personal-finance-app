@@ -2,9 +2,11 @@ import axios from "axios";
 
 const api = axios.create({ baseURL: "http://localhost:4000/api" });
 
+// accounts
 export const getAccounts = () => api.get("/accounts").then((r) => r.data);
 export const createAccount = (data) => api.post("/accounts", data).then((r) => r.data);
 
+//transactions
 export const getTransactions = (params) =>
   api.get("/transactions", { params }).then((r) => r.data);
 export const createTransaction = (data) =>
@@ -19,11 +21,13 @@ export const importTransactions = (formData) =>
 export const suggestCategoryForMerchant = (merchant) =>
   api.get("/transactions/suggest-category", { params: { merchant } }).then((r) => r.data);
 
+// budgets
 export const getBudgets = () => api.get("/budgets").then((r) => r.data);
 export const createBudget = (data) => api.post("/budgets", data).then((r) => r.data);
 export const updateBudget = (id, data) => api.put(`/budgets/${id}`, data).then((r) => r.data);
 export const deleteBudget = (id) => api.delete(`/budgets/${id}`).then((r) => r.data);
 
+// pots
 export const getPots = () => api.get("/pots").then((r) => r.data);
 export const createPot = (data) => api.post("/pots", data).then((r) => r.data);
 export const updatePot = (id, data) => api.put(`/pots/${id}`, data).then((r) => r.data);
@@ -33,6 +37,7 @@ export const depositToPot = (id, amount) =>
 export const withdrawFromPot = (id, amount) =>
   api.post(`/pots/${id}/withdraw`, { amount }).then((r) => r.data);
 
+// recurring bills
 export const getRecurringBills = () => api.get("/recurring-bills").then((r) => r.data);
 export const detectRecurringBills = () =>
   api.get("/recurring-bills/detect").then((r) => r.data);
@@ -43,6 +48,7 @@ export const updateRecurringBill = (id, data) =>
 export const deleteRecurringBill = (id) =>
   api.delete(`/recurring-bills/${id}`).then((r) => r.data);
 
+//reports
 export const getOverview = () => api.get("/reports/overview").then((r) => r.data);
 export const getSpendingByCategory = () =>
   api.get("/reports/spending-by-category").then((r) => r.data);
@@ -50,7 +56,9 @@ export const getBudgetVsActual = () => api.get("/reports/budget-vs-actual").then
 export const getLatestByCategory = () =>
   api.get("/reports/latest-by-category").then((r) => r.data);
 export const getMonthlyTrend = () => api.get("/reports/monthly-trend").then((r) => r.data);
+export const getUnusualSpending = () => api.get("/reports/unusual-spending").then((r) => r.data);
 
+//categories
 export const getCategories = () => api.get("/categories").then((r) => r.data);
 export const createCategory = (data) => api.post("/categories", data).then((r) => r.data);
 

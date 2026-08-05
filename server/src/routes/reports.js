@@ -182,4 +182,61 @@ router.get("/monthly-trend", async (req, res, next) => {
   }
 });
 
+router.get("/unusual-spending", async (req, res, next) => {
+  try {
+    const rows = await prisma.$queryRaw`
+      WITH monthly_category_spending AS (
+        SELECT
+          t."categoryId",
+          DATE_TRUNC('month', t.date) AS month,
+          SUM(CASE WHEN t.amount < 0 THEN -t.amount ELSE 0 END) AS total
+        FROM "Transaction" t
+        WHERE t."categoryId" IS NOT NULL
+        GROUP BY t."categoryId", DATE_TRUNC('month', t.date)
+      ),
+      current_month AS (
+        SELECT "categoryId", total AS current_total
+        FROM monthly_category_spending
+        WHERE month = DATE_TRUNC('month', CURRENT_DATE)
+      ),
+      historical_avg AS (
+        SELECT "categoryId", AVG(total) AS avg_total, COUNT(*) AS months_count
+        FROM monthly_category_spending
+        WHERE month < DATE_TRUNC('month', CURRENT_DATE)
+        GROUP BY "categoryId"
+      )
+      SELECT
+        c.id AS "categoryId",
+        c.name AS category,
+        c.color AS color,
+        cm.current_total AS "currentTotal",
+        ha.avg_total AS "averageTotal"
+      FROM current_month cm
+      JOIN historical_avg ha ON ha."categoryId" = cm."categoryId"
+      JOIN "Category" c ON c.id = cm."categoryId"
+      WHERE ha.months_count >= 2
+        AND ha.avg_total > 0
+        AND cm.current_total > ha.avg_total * 1.5
+      ORDER BY (cm.current_total / ha.avg_total) DESC
+    `;
+
+    const result = rows.map((r) => {
+      const currentTotal = Number(r.currentTotal);
+      const averageTotal = Number(r.averageTotal);
+      return {
+        categoryId: r.categoryId,
+        category: r.category,
+        color: r.color,
+        currentTotal,
+        averageTotal,
+        percentageOfAverage: Math.round((currentTotal / averageTotal) * 100),
+      };
+    });
+
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+});
+
 module.exports = router;
