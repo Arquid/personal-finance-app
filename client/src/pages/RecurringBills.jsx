@@ -1,4 +1,4 @@
-import { useState} from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   getRecurringBills,
@@ -11,7 +11,10 @@ import {
 import RecurringBillsTable from "../components/recurringBills/RecurringBillsTable";
 import RecurringBillFormModal from "../components/recurringBills/RecurringBillFormModal";
 import ConfirmDialog from "../components/shared/ConfirmDialog";
+import { getBillsNeedingReminder } from "../utils/billReminders";
 import "../stylesheets/RecurringBills.css";
+
+const REMINDER_STORAGE_KEY = "finance-app-bill-reminder-last-shown";
 
 function RecurringBills() {
   const queryClient = useQueryClient();
@@ -23,6 +26,9 @@ function RecurringBills() {
   const [prefillData, setPrefillData] = useState(null);
   const [showDetected, setShowDetected] = useState(false);
   const [confirmTarget, setConfirmTarget] = useState(null);
+  const [notificationPermission, setNotificationPermission] = useState(
+    typeof Notification !== "undefined" ? Notification.permission : "unsupported",
+  );
 
   const { data: bills, isLoading } = useQuery({
     queryKey: ["recurring-bills"],
@@ -66,6 +72,28 @@ function RecurringBills() {
     mutationFn: deleteRecurringBill,
     onSuccess: invalidateBills,
   });
+
+  const reminders = useMemo(
+    () => (bills ? getBillsNeedingReminder(bills) : []),
+    [bills],
+  );
+
+  useEffect(() => {
+    if (reminders.length === 0) return;
+    if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
+
+    const today = new Date().toISOString().slice(0, 10);
+    if (localStorage.getItem(REMINDER_STORAGE_KEY) === today) return;
+
+    new Notification("Bills need your attention", {
+      body: reminders.map((b) => `${b.name} — $${Number(b.amount).toFixed(2)}`).join("\n"),
+    });
+    localStorage.setItem(REMINDER_STORAGE_KEY, today);
+  }, [reminders]);
+
+  function requestNotificationPermission() {
+    Notification.requestPermission().then(setNotificationPermission);
+  }
 
   const filtered = (bills ?? [])
     .filter((bill) => {
@@ -160,7 +188,21 @@ function RecurringBills() {
           </button>
         </div>
       </div>
-
+      {reminders.length > 0 && (
+        <div className="bill-reminder-banner">
+          <span>
+            <strong>
+              {reminders.length} bill{reminders.length === 1 ? "" : "s"}
+            </strong>{" "}
+            need your attention: {reminders.map((b) => b.name).join(", ")}
+          </span>
+          {notificationPermission === "default" && (
+            <button type="button" onClick={requestNotificationPermission}>
+              Enable browser notifications
+            </button>
+          )}
+        </div>
+      )}
       {showDetected && (
         <div className="detected-panel">
           <div className="detected-panel-header">
