@@ -11,8 +11,8 @@
 }
 
 .pots-header button {
-  background: #201f24;
-  color: white;
+  background: var(--color-primary);
+  color: var(--color-primary-text);
   border: none;
   border-radius: 8px;
   padding: 10px 16px;
@@ -26,10 +26,10 @@
 }
 
 .pot-card {
-  background: white;
+  background: var(--color-surface);
   border-radius: 12px;
   padding: 20px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 1px 2px var(--color-shadow);
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -61,7 +61,7 @@
 
 .pot-card-actions button {
   background: none;
-  border: 1px solid #e5e4e7;
+  border: 1px solid var(--color-border);
   border-radius: 6px;
   padding: 4px 10px;
   margin-left: 6px;
@@ -77,18 +77,18 @@
 .pot-target {
   font-size: 14px;
   font-weight: 400;
-  color: #6b7280;
+  color: var(--color-text-muted);
 }
 
 .pot-percentage {
   font-size: 12px;
-  color: #6b7280;
+  color: var(--color-text-muted);
   align-self: flex-end;
 }
 
 .pot-estimate {
   font-size: 12px;
-  color: #6b7280;
+  color: var(--color-text-muted);
   margin: 0;
 }
 
@@ -102,14 +102,14 @@
   flex: 1;
   padding: 8px 12px;
   border-radius: 8px;
-  border: 1px solid #e5e4e7;
-  background: #f7f7f9;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
   cursor: pointer;
   font-size: 13px;
 }
 
 .pot-money-current {
-  color: #6b7280;
+  color: var(--color-text-muted);
   font-size: 14px;
   margin: -4px 0 8px;
 }

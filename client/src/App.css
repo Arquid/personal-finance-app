@@ -2,10 +2,19 @@
   box-sizing: border-box;
 }
 
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
 body {
   margin: 0;
   font-family: system-ui, sans-serif;
-  background: #f7f7f9;
+  background: var(--color-bg);
+  color: var(--color-text);
 }
 
 .app-layout {
@@ -74,19 +83,74 @@ body {
   font-size: 14px;
 }
 
+.sidebar-theme {
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sidebar-theme label {
+  font-size: 12px;
+  color: #9391a0;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.theme-toggle {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.theme-toggle-track {
+  display: block;
+  width: 40px;
+  height: 22px;
+  border-radius: 999px;
+  background: #383741;
+  position: relative;
+  transition: background 0.15s ease;
+}
+
+.theme-toggle[aria-checked="true"] .theme-toggle-track {
+  background: #6c5ce7;
+}
+
+.theme-toggle-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: white;
+  transition: transform 0.15s ease;
+}
+
+.theme-toggle[aria-checked="true"] .theme-toggle-thumb {
+  transform: translateX(18px);
+}
+
+.theme-toggle:focus-visible .theme-toggle-track {
+  outline: 2px solid #6c5ce7;
+  outline-offset: 2px;
+}
+
 .app-content {
   flex: 1;
   padding: 32px;
 }
 
 .error-boundary {
-  background: white;
+  background: var(--color-surface);
   border-radius: 12px;
   padding: 32px;
   text-align: center;
   max-width: 480px;
   margin: 64px auto;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 1px 2px var(--color-shadow);
 }
 
 .error-boundary h2 {
@@ -94,13 +158,13 @@ body {
 }
 
 .error-boundary p {
-  color: #6b7280;
+  color: var(--color-text-muted);
   margin: 0 0 16px;
 }
 
 .error-boundary button {
-  background: #201f24;
-  color: white;
+  background: var(--color-primary);
+  color: var(--color-primary-text);
   border: none;
   border-radius: 8px;
   padding: 10px 20px;

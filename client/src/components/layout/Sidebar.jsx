@@ -1,5 +1,6 @@
 import { NavLink } from "react-router-dom";
 import useCurrency from "../../hooks/useCurrency";
+import useTheme from "../../hooks/useTheme";
 
 const links = [
   { to: "/", label: "Overview" },
@@ -11,6 +12,7 @@ const links = [
 
 function Sidebar() {
   const { currency, setCurrency, currencies } = useCurrency();
+  const { theme, toggleTheme } = useTheme();
 
   return (
     <nav className="sidebar">
@@ -38,6 +40,22 @@ function Sidebar() {
             </option>
           ))}
         </select>
+      </div>
+
+      <div className="sidebar-theme">
+        <label htmlFor="theme-toggle">Dark Mode</label>
+        <button
+          id="theme-toggle"
+          type="button"
+          role="switch"
+          aria-checked={theme === "dark"}
+          onClick={toggleTheme}
+          className="theme-toggle"
+        >
+          <span className="theme-toggle-track">
+            <span className="theme-toggle-thumb" />
+          </span>
+        </button>
       </div>
     </nav>
   );

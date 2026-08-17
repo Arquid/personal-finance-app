@@ -11,8 +11,8 @@
 }
 
 .transactions-header button {
-  background: #201f24;
-  color: white;
+  background: var(--color-primary);
+  color: var(--color-primary-text);
   border: none;
   border-radius: 8px;
   padding: 10px 16px;
@@ -25,8 +25,8 @@
 }
 
 .transactions-header-actions a {
-  background: #201f24;
-  color: white;
+  background: var(--color-primary);
+  color: var(--color-primary-text);
   border: none;
   border-radius: 8px;
   padding: 10px 16px;
@@ -36,12 +36,12 @@
 
 .csv-hint {
   font-size: 12px;
-  color: #6b7280;
+  color: var(--color-text-muted);
   margin: -6px 0 0;
 }
 
 .csv-result {
-  background: #f7f7f9;
+  background: var(--color-bg);
   border-radius: 8px;
   padding: 12px;
   font-size: 13px;
@@ -57,19 +57,19 @@
   padding-left: 18px;
   max-height: 150px;
   overflow-y: auto;
-  color: #dc2626;
+  color: var(--color-danger);
 }
 
 .category-suggestion {
   font-size: 12px;
-  color: #6b7280;
+  color: var(--color-text-muted);
   margin: 4px 0 0;
 }
 
 .category-suggestion button {
   background: none;
   border: none;
-  color: #6c5ce7;
+  color: var(--color-accent);
   cursor: pointer;
   font-size: 12px;
   padding: 0;
@@ -86,13 +86,13 @@
 }
 
 .budget-alert-banner.status-warning {
-  background: #fef9c3;
-  color: #b45309;
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
 }
 
 .budget-alert-banner.status-over {
-  background: #fee2e2;
-  color: #dc2626;
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
 }
 
 .budget-alert-banner button {
@@ -112,7 +112,8 @@
 .transaction-filters select {
   padding: 8px 12px;
   border-radius: 8px;
-  border: 1px solid #e5e4e7;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
 }
 
 .transaction-filters input {
@@ -122,7 +123,7 @@
 .transaction-table {
   width: 100%;
   border-collapse: collapse;
-  background: white;
+  background: var(--color-surface);
   border-radius: 12px;
   overflow: hidden;
 }
@@ -131,7 +132,7 @@
 .transaction-table td {
   text-align: left;
   padding: 12px 16px;
-  border-bottom: 1px solid #f0f0f2;
+  border-bottom: 1px solid var(--color-border-subtle);
   font-size: 14px;
 }
 
@@ -145,7 +146,7 @@
 }
 
 .sort-button.active {
-  color: #6c5ce7;
+  color: var(--color-accent);
 }
 
 .transaction-desc-cell {
@@ -155,20 +156,20 @@
 
 .transaction-merchant {
   font-size: 12px;
-  color: #9ca3af;
+  color: var(--color-text-subtle);
 }
 
 .transaction-table td.expense {
-  color: #dc2626;
+  color: var(--color-danger);
 }
 
 .transaction-table td.income {
-  color: #16a34a;
+  color: var(--color-success);
 }
 
 .transaction-table button {
   background: none;
-  border: 1px solid #e5e4e7;
+  border: 1px solid var(--color-border);
   border-radius: 6px;
   padding: 4px 10px;
   margin-right: 6px;
@@ -185,7 +186,7 @@
 }
 
 .pagination:focus-visible {
-  outline: 2px solid #6c5ce7;
+  outline: 2px solid var(--color-accent);
   outline-offset: 4px;
   border-radius: 8px;
 }
@@ -193,8 +194,8 @@
 .pagination button {
   padding: 8px 16px;
   border-radius: 8px;
-  border: 1px solid #e5e4e7;
-  background: white;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
   cursor: pointer;
 }
 

@@ -9,7 +9,7 @@
 }
 
 .modal {
-  background: white;
+  background: var(--color-surface);
   border-radius: 12px;
   padding: 24px;
   width: 400px;
@@ -35,17 +35,18 @@
 .modal select {
   padding: 8px 10px;
   border-radius: 8px;
-  border: 1px solid #e5e4e7;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
   font-size: 14px;
 }
 
 .modal input:disabled {
-  background: #f3f4f6;
-  color: #6b7280;
+  background: var(--color-disabled-bg);
+  color: var(--color-text-muted);
 }
 
 .field-error {
-  color: #dc2626;
+  color: var(--color-danger);
   font-size: 12px;
 }
 
@@ -59,26 +60,26 @@
 .modal-actions button {
   padding: 8px 16px;
   border-radius: 8px;
-  border: 1px solid #e5e4e7;
-  background: white;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
   cursor: pointer;
 }
 
 .modal-actions button[type="submit"] {
-  background: #201f24;
-  color: white;
+  background: var(--color-primary);
+  color: var(--color-primary-text);
   border: none;
 }
 
 .modal-actions button.danger {
-  background: #dc2626;
-  color: white;
+  background: var(--color-danger);
+  color: var(--color-primary-text);
   border: none;
 }
 
 .progress-bar {
   height: 8px;
-  background: #eef0f2;
+  background: var(--color-track);
   border-radius: 4px;
   overflow: hidden;
 }
@@ -105,13 +106,13 @@
 }
 
 .color-swatch:focus-visible {
-  outline: 2px solid #201f24;
+  outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
 
 .color-swatch.selected {
-  border-color: #201f24;
-  box-shadow: 0 0 0 2px white inset;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px var(--color-surface) inset;
 }
 
 .category-select-row {
@@ -126,8 +127,8 @@
 .category-select-row button {
   padding: 8px 12px;
   border-radius: 8px;
-  border: 1px solid #e5e4e7;
-  background: white;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
   cursor: pointer;
   font-size: 13px;
   white-space: nowrap;
