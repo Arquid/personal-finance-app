@@ -6,6 +6,7 @@ import {
   updateTransaction,
   deleteTransaction,
   importTransactions,
+  transferBetweenAccounts,
   getAccounts,
   getCategories,
 } from "../api/client";
@@ -14,6 +15,7 @@ import TransactionTable from "../components/transactions/TransactionTable";
 import Pagination from "../components/transactions/Pagination";
 import TransactionFormModal from "../components/transactions/TransactionFormModal";
 import ImportCsvModal from "../components/transactions/ImportCsvModal";
+import TransferModal from "../components/transactions/TransferModal";
 import ConfirmDialog from "../components/shared/ConfirmDialog";
 import useCurrency from "../hooks/useCurrency";
 import "../stylesheets/Transactions.css";
@@ -31,6 +33,7 @@ function Transactions() {
   const [budgetAlert, setBudgetAlert] = useState(null);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [confirmTarget, setConfirmTarget] = useState(null);
+  const [isTransferOpen, setIsTransferOpen] = useState(false);
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["transactions", { page, search, category, sortBy, order }],
@@ -79,6 +82,21 @@ function Transactions() {
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
     },
   });
+
+  const transferMutation = useMutation({
+    mutationFn: transferBetweenAccounts,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["accounts"] });
+      setIsTransferOpen(false);
+      transferMutation.reset();
+    },
+  });
+
+  function getTransferError() {
+    if (!transferMutation.isError) return null;
+    const data = transferMutation.error.response?.data;
+    return typeof data?.error === "string" ? data.error : "Transfer failed.";
+  }
 
   function handleSort(field) {
     if (sortBy === field) {
@@ -172,6 +190,7 @@ function Transactions() {
             Export CSV
           </a>
           <button onClick={() => setIsImportOpen(true)}>Import CSV</button>
+          <button onClick={() => setIsTransferOpen(true)}>Transfer</button>
           <button
             onClick={() => {
               setEditingTransaction(null);
@@ -236,6 +255,19 @@ function Transactions() {
           isImporting={importMutation.isPending}
           result={getImportResult()}
           error={getImportError()}
+        />
+      )}
+
+      {isTransferOpen && (
+        <TransferModal
+          accounts={accounts ?? []}
+          onSubmit={(data) => transferMutation.mutate(data)}
+          onClose={() => {
+            setIsTransferOpen(false);
+            transferMutation.reset();
+          }}
+          error={getTransferError()}
+          isSubmitting={transferMutation.isPending}
         />
       )}
 

@@ -5,6 +5,8 @@ const api = axios.create({ baseURL: "http://localhost:4000/api" });
 // accounts
 export const getAccounts = () => api.get("/accounts").then((r) => r.data);
 export const createAccount = (data) => api.post("/accounts", data).then((r) => r.data);
+export const transferBetweenAccounts = (data) =>
+  api.post("/accounts/transfer", data).then((r) => r.data);
 
 //transactions
 export const getTransactions = (params) =>

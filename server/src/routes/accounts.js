@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const prisma = require("../prismaClient");
 const validate = require("../middleware/validate");
-const { accountCreateSchema, accountUpdateSchema } = require("../schemas/accountSchema");
+const { accountCreateSchema, accountUpdateSchema, accountTransferSchema } = require("../schemas/accountSchema");
 
 router.get("/", async (req, res, next) => {
   try {
@@ -50,6 +50,42 @@ router.delete("/:id", async (req, res, next) => {
   try {
     await prisma.account.delete({ where: { id: Number(req.params.id) } });
     res.status(204).send();
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post("/transfer", validate(accountTransferSchema), async (req, res, next) => {
+  try {
+    const { fromAccountId, toAccountId, amount } = req.body;
+
+    const result = await prisma.$transaction(async (tx) => {
+      const debited = await tx.$queryRaw`
+        UPDATE "Account"
+        SET balance = balance - ${amount}
+        WHERE id = ${fromAccountId} AND balance >= ${amount}
+        RETURNING *
+      `;
+
+      if (debited.length === 0) {
+        const existing = await tx.account.findUnique({ where: { id: fromAccountId } });
+        if (!existing) {
+          throw Object.assign(new Error("Source account not found"), { status: 404 });
+        }
+        throw Object.assign(new Error("Cannot transfer more than the account balance"), {
+          status: 400,
+        });
+      }
+
+      const credited = await tx.account.update({
+        where: { id: toAccountId },
+        data: { balance: { increment: amount } },
+      });
+
+      return { from: debited[0], to: credited };
+    });
+
+    res.json(result);
   } catch (err) {
     next(err);
   }

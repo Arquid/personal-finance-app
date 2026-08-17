@@ -10,4 +10,15 @@ const accountCreateSchema = z.object({
 
 const accountUpdateSchema = accountCreateSchema.partial();
 
-module.exports = { accountCreateSchema, accountUpdateSchema };
+const accountTransferSchema = z
+  .object({
+    fromAccountId: z.coerce.number().int().positive("Source account is required"),
+    toAccountId: z.coerce.number().int().positive("Destination account is required"),
+    amount: z.coerce.number().positive("Amount must be greater than 0"),
+  })
+  .refine((data) => data.fromAccountId !== data.toAccountId, {
+    message: "Cannot transfer to the same account",
+    path: ["toAccountId"],
+  });
+
+module.exports = { accountCreateSchema, accountUpdateSchema, accountTransferSchema };
