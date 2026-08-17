@@ -6,13 +6,15 @@ A full-stack personal finance manager with transaction tracking, budget manageme
 
 ## Features
 
-- **Overview dashboard** — total balance, monthly income/expenses, spending-by-category donut chart, budget vs. actual bar chart, monthly trend chart (income/expenses per month plus a cumulative-expenses line, powered by a `ROW_NUMBER()`-style running-total SQL window function), pot progress, latest transactions
-- **Transactions** — paginated (10/page), searchable, sortable, filterable by category; full CRUD; CSV import with per-row validation; CSV export (respects the current search/category filters)
+- **Overview dashboard** — total balance, monthly income/expenses, spending-by-category donut chart, budget vs. actual bar chart, monthly trend chart (income/expenses per month plus a cumulative-expenses line, powered by a `ROW_NUMBER()`-style running-total SQL window function), unusual-spending alerts (flags categories running far above their historical monthly average, via a CTE-based query), pot progress, latest transactions
+- **Transactions** — paginated (10/page), searchable, sortable, filterable by category; full CRUD; CSV import with per-row validation; CSV export (respects the current search/category filters); merchant-based category suggestions when adding a transaction
 - **Budgets** — CRUD per category, progress bars with over/warning/ok status, latest 3 transactions per budget category, budget-limit alerts shown when adding/editing a transaction
-- **Pots** — CRUD, deposit/withdraw with balance validation, progress toward savings goal
-- **Recurring Bills** — CRUD, search and sort, current-month payment status (Paid / Due / Overdue), automatic detection of recurring payment patterns from transaction history
+- **Pots** — CRUD, deposit/withdraw with balance validation, progress toward savings goal, estimated completion date projected from the average deposit rate
+- **Recurring Bills** — CRUD, search and sort, current-month payment status (Paid / Due / Overdue), automatic detection of recurring payment patterns from transaction history, one-click "mark as paid", in-app banner plus opt-in browser notifications for bills due soon or overdue
+- **Account transfers** — move money between your own accounts; recorded as a direct balance adjustment, not a transaction, so it never distorts income/expense reporting
 - **Custom categories** — create new categories on the fly from the transaction form, no need to pre-seed them
 - Currency switcher (USD/EUR/GBP), applied app-wide and persisted to localStorage
+- **Dark mode** — follows the OS's `prefers-color-scheme` by default, with a manual toggle that overrides it and persists
 - Form validation throughout (Zod on both client and server)
 - Keyboard navigation (sortable table headers, arrow-key pagination, modals close on Escape and trap focus)
 - Accessible confirmation dialogs for all delete actions (no native `window.confirm`)
@@ -21,7 +23,7 @@ A full-stack personal finance manager with transaction tracking, budget manageme
 
 **Backend:** Node.js, Express 5, PostgreSQL, Prisma 6 (ORM), Zod (validation), Multer + csv-parse (CSV import)
 
-**Frontend:** React 19, Vite, React Router, TanStack Query (React Query v5), React Hook Form + Zod, Recharts, Axios
+**Frontend:** React 19, Vite, React Router, TanStack Query (React Query v5), React Hook Form + Zod, Recharts, Axios, CSS custom properties for theming (light/dark)
 
 **Testing:** Vitest on both sides — unit + Supertest integration tests on the backend (against a dedicated test database), unit + React Testing Library component tests on the frontend
 
@@ -47,13 +49,14 @@ personal-finance-app/
 │       └── utils/           budgetAlert.js, recurringBillStatus.js (each has a *.test.js next to it)
 └── client/                  React app
     └── src/
-        ├── test/setup.js    Vitest + Testing Library setup (jest-dom matchers, cleanup)
+        ├── test/setup.js    Vitest + Testing Library setup (jest-dom matchers, matchMedia polyfill, cleanup)
         ├── api/client.js    Axios calls to the backend
         ├── pages/           One page per route
         ├── components/      One folder per feature (transactions, budgets, pots, recurringBills, layout, shared) — key components have a *.test.jsx next to them
-        ├── context/         CurrencyProvider — app-wide currency selection (USD/EUR/GBP), persisted to localStorage, with CurrencyProvider.test.jsx
-        ├── hooks/           Shared hooks (useModal.js — Escape-to-close + focus trap for all modals, with useModal.test.jsx; useCurrency.js)
-        └── stylesheets/      All CSS lives here, one file per page/shared concern
+        ├── context/         CurrencyProvider (USD/EUR/GBP) and ThemeProvider (light/dark) — both localStorage-persisted, each with its own *.test.jsx
+        ├── hooks/           Shared hooks (useModal.js — Escape-to-close + focus trap for all modals, with useModal.test.jsx; useCurrency.js; useTheme.js)
+        ├── utils/           Pure helper functions (billReminders.js, potEstimate.js, format.js), each with a *.test.js next to it
+        └── stylesheets/     All CSS lives here; theme.css holds the CSS custom properties consumed by the rest
 ```
 
 ## Prerequisites
@@ -166,7 +169,7 @@ cd server
 npm test
 ```
 
-This automatically migrates the test database first (`pretest` script), then runs both the unit tests (Zod schemas, `recurringBillStatus.js` — no DB needed) and the integration tests (Supertest against the real Express app) for every resource — accounts, transactions, budgets, pots, recurring bills, categories, and reports — including a test that fires 10 concurrent pot withdrawals to verify the balance can never go negative, tests that verify the reporting endpoints' raw SQL (`GROUP BY` aggregation and the `ROW_NUMBER() OVER (PARTITION BY ...)` window function), and tests for the CSV export endpoint (filtering, and correct quoting of fields containing commas).
+This automatically migrates the test database first (`pretest` script), then runs both the unit tests (Zod schemas, `recurringBillStatus.js` — no DB needed) and the integration tests (Supertest against the real Express app) for every resource — accounts (including inter-account transfers, atomic and rollback-safe), transactions (including CSV export and merchant-based category suggestions), budgets, pots, recurring bills, categories, and reports — including a test that fires 10 concurrent pot withdrawals to verify the balance can never go negative, tests that verify the reporting endpoints' raw SQL (`GROUP BY` aggregation, CTEs for the unusual-spending comparison, and the `ROW_NUMBER() OVER (PARTITION BY ...)` window function), and tests for the CSV export endpoint (filtering, and correct quoting of fields containing commas).
 
 Test files run sequentially rather than in parallel (`fileParallelism: false` in `vitest.config.js`) since they all share one real database — this trades a bit of speed for full determinism, since a test that reads across an entire table would otherwise race against other files' concurrent writes.
 
@@ -177,7 +180,7 @@ cd client
 npm test
 ```
 
-Runs unit tests for `useModal` (focus trap, Escape-to-close) and `CurrencyProvider` (currency switching, localStorage persistence), and component tests for `PotCard`, `BudgetCard`, `RecurringBillsTable`, and `ConfirmDialog`. No backend or database needed — these render components in isolation with mocked props.
+Runs unit tests for `useModal` (focus trap, Escape-to-close), `CurrencyProvider` (currency switching, localStorage persistence), `ThemeProvider` (light/dark switching, system-preference detection, localStorage persistence), and the `billReminders`/`potEstimate` pure utility functions (including a regression test for a DST-related date-math bug), plus component tests for `PotCard`, `BudgetCard`, `RecurringBillsTable`, and `ConfirmDialog`. No backend or database needed — these render components in isolation with mocked props.
 
 ## Continuous Integration
 
@@ -217,15 +220,15 @@ All endpoints are prefixed with `/api`.
 
 | Resource | Endpoints |
 |---|---|
-| Accounts | `GET/POST /accounts`, `GET/PUT/DELETE /accounts/:id` |
-| Transactions | `GET/POST /transactions`, `GET/PUT/DELETE /transactions/:id`, `POST /transactions/import` (CSV), `GET /transactions/export` (CSV) |
+| Accounts | `GET/POST /accounts`, `GET/PUT/DELETE /accounts/:id`, `POST /accounts/transfer` |
+| Transactions | `GET/POST /transactions`, `GET/PUT/DELETE /transactions/:id`, `POST /transactions/import` (CSV), `GET /transactions/export` (CSV), `GET /transactions/suggest-category` |
 | Budgets | `GET/POST /budgets`, `GET/PUT/DELETE /budgets/:id` |
 | Pots | `GET/POST /pots`, `GET/PUT/DELETE /pots/:id`, `POST /pots/:id/deposit`, `POST /pots/:id/withdraw` |
 | Recurring Bills | `GET/POST /recurring-bills`, `GET/PUT/DELETE /recurring-bills/:id`, `GET /recurring-bills/detect` |
 | Categories | `GET /categories`, `POST /categories` (creates a custom category) |
-| Reports | `GET /reports/overview`, `GET /reports/spending-by-category`, `GET /reports/budget-vs-actual`, `GET /reports/latest-by-category`, `GET /reports/monthly-trend` |
+| Reports | `GET /reports/overview`, `GET /reports/spending-by-category`, `GET /reports/budget-vs-actual`, `GET /reports/latest-by-category`, `GET /reports/monthly-trend`, `GET /reports/unusual-spending` |
 
-`GET /transactions` supports `page`, `limit`, `search`, `category`, `accountId`, `sortBy`, `order` query parameters. `GET /transactions/export` accepts the same `search`/`category`/`accountId`/`sortBy`/`order` filters (no pagination) and returns a CSV file.
+`GET /transactions` supports `page`, `limit`, `search`, `category`, `accountId`, `sortBy`, `order` query parameters. `GET /transactions/export` accepts the same `search`/`category`/`accountId`/`sortBy`/`order` filters (no pagination) and returns a CSV file. `GET /transactions/suggest-category` takes a `merchant` query parameter and returns that merchant's most-used category, or `null` if there's no history for it. `POST /accounts/transfer` takes `fromAccountId`, `toAccountId`, and `amount`, and atomically moves the balance between the two accounts (rolled back entirely if either side fails).
 
 ## Notes
 
