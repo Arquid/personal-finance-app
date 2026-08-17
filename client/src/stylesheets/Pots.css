@@ -86,6 +86,12 @@
   align-self: flex-end;
 }
 
+.pot-estimate {
+  font-size: 12px;
+  color: #6b7280;
+  margin: 0;
+}
+
 .pot-card-money-actions {
   display: flex;
   gap: 8px;

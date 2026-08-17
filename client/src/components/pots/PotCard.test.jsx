@@ -10,6 +10,7 @@ const basePot = {
   currentAmount: "750",
   targetAmount: "2000",
   color: "#0984e3",
+  createdAt: "2026-01-01",
 };
 
 describe("PotCard", () => {
@@ -53,5 +54,26 @@ describe("PotCard", () => {
     renderWithProviders(<PotCard pot={basePot} onEdit={() => {}} onDelete={onDelete} onDeposit={() => {}} onWithdraw={() => {}} />);
     await user.click(screen.getByText("Delete"));
     expect(onDelete).toHaveBeenCalledWith(basePot);
+  });
+
+  it("shows 'Goal reached!' when the pot has met its target", () => {
+    const reached = { ...basePot, currentAmount: "2000", targetAmount: "2000" };
+    renderWithProviders(<PotCard pot={reached} onEdit={() => {}} onDelete={() => {}} onDeposit={() => {}} onWithdraw={() => {}} />);
+    expect(screen.getByText("Goal reached!")).toBeInTheDocument();
+  });
+
+  it("shows an estimated completion date based on the average deposit rate", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 3, 11)); // 100 days after basePot's createdAt
+    renderWithProviders(<PotCard pot={basePot} onEdit={() => {}} onDelete={() => {}} onDeposit={() => {}} onWithdraw={() => {}} />);
+    expect(screen.getByText(/Estimated completion:/)).toBeInTheDocument();
+    vi.useRealTimers();
+  });
+
+  it("shows no estimate when the pot has no savings yet", () => {
+    const empty = { ...basePot, currentAmount: "0" };
+    renderWithProviders(<PotCard pot={empty} onEdit={() => {}} onDelete={() => {}} onDeposit={() => {}} onWithdraw={() => {}} />);
+    expect(screen.queryByText(/Estimated completion:/)).not.toBeInTheDocument();
+    expect(screen.queryByText("Goal reached!")).not.toBeInTheDocument();
   });
 });
