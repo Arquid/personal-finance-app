@@ -73,6 +73,11 @@
   font-size: 13px;
 }
 
+.recurring-bills-table button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .status-badge {
   display: inline-block;
   padding: 4px 10px;

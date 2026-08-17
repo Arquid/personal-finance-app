@@ -6,7 +6,9 @@ import {
   createRecurringBill,
   updateRecurringBill,
   deleteRecurringBill,
+  createTransaction,
   getCategories,
+  getAccounts,
 } from "../api/client";
 import RecurringBillsTable from "../components/recurringBills/RecurringBillsTable";
 import RecurringBillFormModal from "../components/recurringBills/RecurringBillFormModal";
@@ -34,7 +36,7 @@ function RecurringBills() {
     queryKey: ["recurring-bills"],
     queryFn: getRecurringBills,
   });
-
+  const { data: accounts } = useQuery({ queryKey: ["accounts"], queryFn: getAccounts });
   const { data: categories } = useQuery({ queryKey: ["categories"], queryFn: getCategories });
   const {
     data: detected,
@@ -72,6 +74,26 @@ function RecurringBills() {
     mutationFn: deleteRecurringBill,
     onSuccess: invalidateBills,
   });
+
+  const markPaidMutation = useMutation({
+    mutationFn: createTransaction,
+    onSuccess: () => {
+      invalidateBills();
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+    },
+  });
+
+  function handleMarkPaid(bill) {
+    if (!accounts || accounts.length === 0) return;
+    markPaidMutation.mutate({
+      amount: -Math.abs(Number(bill.amount)),
+      description: bill.name,
+      merchant: bill.merchant,
+      date: new Date().toISOString().slice(0, 10),
+      accountId: accounts[0].id,
+      categoryId: bill.categoryId,
+    });
+  }
 
   const reminders = useMemo(
     () => (bills ? getBillsNeedingReminder(bills) : []),
@@ -248,6 +270,7 @@ function RecurringBills() {
         onSort={handleSort}
         onEdit={handleEdit}
         onDelete={handleDelete}
+        onMarkPaid={handleMarkPaid}
       />
 
       {isFormOpen && (

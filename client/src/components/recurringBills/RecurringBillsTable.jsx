@@ -17,7 +17,7 @@ function SortableHeader({ label, field, sortBy, order, onSort }) {
   );
 }
 
-function RecurringBillsTable({ bills, sortBy, order, onSort, onEdit, onDelete }) {
+function RecurringBillsTable({ bills, sortBy, order, onSort, onEdit, onDelete, onMarkPaid }) {
   const { formatCurrency } = useCurrency();
   return (
     <table className="recurring-bills-table">
@@ -47,6 +47,19 @@ function RecurringBillsTable({ bills, sortBy, order, onSort, onEdit, onDelete })
               <span className={`status-badge status-${bill.status}`}>{STATUS_LABELS[bill.status]}</span>
             </td>
             <td>
+              {bill.status !== "paid" &&
+                (bill.merchant ? (
+                  <button
+                    onClick={() => onMarkPaid(bill)}
+                    aria-label={`Mark ${bill.name} as paid`}
+                  >
+                    Mark as Paid
+                  </button>
+                ) : (
+                  <button disabled title="Add a merchant to this bill to enable quick pay tracking">
+                    Mark as Paid
+                  </button>
+                ))}
               <button onClick={() => onEdit(bill)} aria-label={`Edit ${bill.name}`}>
                 Edit
               </button>
