@@ -25,7 +25,7 @@ A full-stack personal finance manager with transaction tracking, budget manageme
 
 **Frontend:** React 19, Vite, React Router, TanStack Query (React Query v5), React Hook Form + Zod, Recharts, Axios, CSS custom properties for theming (light/dark)
 
-**Testing:** Vitest on both sides — unit + Supertest integration tests on the backend (against a dedicated test database), unit + React Testing Library component tests on the frontend
+**Testing:** Vitest on both sides — unit + Supertest integration tests on the backend (against a dedicated test database), unit + React Testing Library component tests on the frontend — plus one Playwright end-to-end test that drives both together in a real browser
 
 ## Project Structure
 
@@ -34,6 +34,7 @@ personal-finance-app/
 ├── .github/workflows/ci.yml CI: lint + test on every push/PR to master
 ├── docker-compose.yml       Local PostgreSQL (dev + test databases), no manual install needed
 ├── docker/init-test-db.sql  Creates finance_test_db on first container start
+├── e2e/                     Playwright end-to-end test (drives the real backend + frontend together)
 ├── server/                  Express API
 │   ├── prisma/
 │   │   ├── schema.prisma    Database schema
@@ -180,7 +181,20 @@ cd client
 npm test
 ```
 
-Runs unit tests for `useModal` (focus trap, Escape-to-close), `CurrencyProvider` (currency switching, localStorage persistence), `ThemeProvider` (light/dark switching, system-preference detection, localStorage persistence), and the `billReminders`/`potEstimate` pure utility functions (including a regression test for a DST-related date-math bug), plus component tests for `PotCard`, `BudgetCard`, `RecurringBillsTable`, and `ConfirmDialog`. No backend or database needed — these render components in isolation with mocked props.
+Runs unit tests for `useModal` (focus trap, Escape-to-close), `CurrencyProvider` (currency switching, localStorage persistence), `ThemeProvider` (light/dark switching, system-preference detection, localStorage persistence), and the `billReminders`/`potEstimate` pure utility functions (including a regression test for a DST-related date-math bug), plus component tests for every modal form (`TransactionFormModal`, `TransferModal`, `ImportCsvModal`, `PotFormModal`, `BudgetFormModal`, `RecurringBillFormModal`) and for `PotCard`, `BudgetCard`, `RecurringBillsTable`, and `ConfirmDialog`. No backend or database needed — these render components in isolation with mocked props.
+
+### End-to-end
+
+Unlike the tests above, this one isn't run in isolation — it drives a real browser against the real backend and frontend running together, which is the one thing the other two test suites can't verify on their own.
+
+```bash
+cd e2e
+npm install
+npx playwright install chromium
+npm test
+```
+
+This starts the backend against `finance_test_db` (same database the backend integration tests use — requires it to already be migrated, see the Backend section above) and the Vite dev server, then runs a single happy-path test: open the Transactions page, add a transaction through the real UI, and confirm it shows up in the table. Both servers are started and torn down automatically by Playwright (`webServer` in `e2e/playwright.config.js`) and reused if you already have them running locally.
 
 ## Continuous Integration
 
