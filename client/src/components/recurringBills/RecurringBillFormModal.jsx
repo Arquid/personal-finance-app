@@ -95,7 +95,7 @@ function RecurringBillFormModal({ categories, initialData, prefillData, onSubmit
 
           <label>
             Due Day (1-31)
-            <input type="number" min="1" max="31" {...register("dueDay")} />
+            <input type="number" {...register("dueDay")} />
             {errors.dueDay && <span className="field-error">{errors.dueDay.message}</span>}
           </label>
 

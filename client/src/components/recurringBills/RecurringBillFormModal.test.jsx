@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import RecurringBillFormModal from "./RecurringBillFormModal";
 
@@ -64,7 +64,7 @@ describe("RecurringBillFormModal", () => {
 
   it("shows a validation error when the due day is out of range", async () => {
     const user = userEvent.setup();
-    const { container } = render(
+    render(
       <RecurringBillFormModal
         categories={categories}
         initialData={null}
@@ -74,10 +74,9 @@ describe("RecurringBillFormModal", () => {
       />,
     );
 
-    container.querySelector("form").noValidate = true;
     await user.type(screen.getByLabelText("Name"), "Gym");
     await user.type(screen.getByLabelText("Amount"), "30");
-    fireEvent.change(screen.getByLabelText("Due Day (1-31)"), { target: { value: "45" } });
+    await user.type(screen.getByLabelText("Due Day (1-31)"), "45");
     await user.click(screen.getByText("Add"));
     expect(await screen.findByText("Day must be between 1 and 31")).toBeInTheDocument();
   });
