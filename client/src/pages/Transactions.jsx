@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import {
+  API_BASE_URL,
   getTransactions,
   createTransaction,
   updateTransaction,
@@ -175,7 +176,7 @@ function Transactions() {
     if (category) params.set("category", category);
     params.set("sortBy", sortBy);
     params.set("order", order);
-    return `http://localhost:4000/api/transactions/export?${params.toString()}`;
+    return `${API_BASE_URL}/transactions/export?${params.toString()}`;
   }
 
   if (isLoading) return <p>Loading...</p>;
