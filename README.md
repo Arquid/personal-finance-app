@@ -249,3 +249,4 @@ All endpoints are prefixed with `/api`.
 
 - Prisma is pinned to `6.x` rather than the current `7.x` major release — v7 switched to a TypeScript/ESM-only generated client and driver adapters, which doesn't fit this project's plain JavaScript/CommonJS stack.
 - The database has no fixed transaction/account IDs baked into the app — always check current IDs via the API (e.g. `GET /accounts`) rather than assuming they start at 1, since `db seed` re-creates rows with fresh auto-incremented IDs each time it runs.
+- This is a single-user demo app with no authentication or authorization layer — every API endpoint is open to anyone who can reach the port. CORS is restricted to `CORS_ORIGIN` (defaults to the Vite dev server), but that's not a substitute for auth. Don't deploy this to a public network without adding one.
