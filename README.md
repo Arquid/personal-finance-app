@@ -198,10 +198,11 @@ This starts the backend against `finance_test_db` (same database the backend int
 
 ## Continuous Integration
 
-Every push and pull request to `master` runs [`.github/workflows/ci.yml`](.github/workflows/ci.yml), with two jobs in parallel:
+Every push and pull request to `master` runs [`.github/workflows/ci.yml`](.github/workflows/ci.yml), with three jobs in parallel:
 
 - **client** — `npm run lint` (ESLint) and `npm test` (Vitest + Testing Library)
 - **server** — `npm test` against a disposable PostgreSQL 16 service container (migrations applied automatically via the `pretest` script, same as local dev)
+- **e2e** — installs server, client, and e2e dependencies plus the Playwright Chromium browser, migrates its own disposable PostgreSQL 16 service container, then runs the Playwright suite against the real backend and Vite dev server (Playwright's `webServer` config starts both automatically)
 
 Both jobs must pass before a PR is mergeable. No local setup is required to benefit from this — it runs entirely on GitHub's infrastructure.
 
