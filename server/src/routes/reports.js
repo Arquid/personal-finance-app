@@ -184,6 +184,9 @@ router.get("/monthly-trend", async (req, res, next) => {
 
 router.get("/unusual-spending", async (req, res, next) => {
   try {
+    // A category is flagged as "unusual" once it has at least 2 months of history to
+    // compare against (so a brand-new category isn't flagged on its first month) and
+    // this month's spending exceeds 1.5x its historical monthly average.
     const rows = await prisma.$queryRaw`
       WITH monthly_category_spending AS (
         SELECT

@@ -55,6 +55,11 @@ router.get("/detect", async (req, res, next) => {
 
     const candidates = [];
 
+    // Heuristic: a merchant looks like a recurring bill if it has at least 3 payments
+    // (fewer is too easily a coincidence), the amounts stay within 5% of each other
+    // (allows for tax/rounding drift without matching unrelated variable purchases),
+    // and most of the gaps between payments fall in a ~monthly window (25-35 days) —
+    // "most" rather than "all" tolerates one skipped or late payment.
     for (const [merchantKey, txs] of byMerchant) {
       if (txs.length < 3) continue;
       if (existingKeys.has(merchantKey)) continue;
