@@ -4,7 +4,7 @@ import useCurrency from "../../hooks/useCurrency";
 function SortableHeader({ label, field, sortBy, order, onSort }) {
   const isActive = sortBy === field;
   return (
-    <th>
+    <th aria-sort={isActive ? (order === "asc" ? "ascending" : "descending") : undefined}>
       <button className={`sort-button ${isActive ? "active" : ""}`} onClick={() => onSort(field)}>
         {label} {isActive ? (order === "asc" ? "▲" : "▼") : ""}
       </button>
