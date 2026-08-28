@@ -2,30 +2,53 @@
 
 [![CI](https://github.com/Arquid/personal-finance-app/actions/workflows/ci.yml/badge.svg)](https://github.com/Arquid/personal-finance-app/actions/workflows/ci.yml)
 
-A full-stack personal finance manager with transaction tracking, budget management, savings pots, recurring bill tracking, and spending analytics. Built to demonstrate handling sensitive financial data with proper validation, relational data modeling, and SQL-based reporting (GROUP BY aggregations and window functions).
+A full-stack personal finance manager with transaction tracking, budget management, savings pots, recurring bill tracking, and spending analytics. Built to demonstrate handling sensitive financial data with proper validation, relational data modeling, and SQL-based reporting (`GROUP BY` aggregations and window functions).
+
+## Contents
+
+- [Features](#features)
+- [Tech Stack](#tech-stack)
+- [Project Structure](#project-structure)
+- [Prerequisites](#prerequisites)
+- [Setup](#setup)
+- [Testing](#testing)
+- [Continuous Integration](#continuous-integration)
+- [Scripts](#scripts)
+- [API Overview](#api-overview)
+- [Notes](#notes)
+- [License](#license)
 
 ## Features
 
-- **Overview dashboard** — total balance, monthly income/expenses, spending-by-category donut chart, budget vs. actual bar chart, monthly trend chart (income/expenses per month plus a cumulative-expenses line, powered by a `ROW_NUMBER()`-style running-total SQL window function), unusual-spending alerts (flags categories running far above their historical monthly average, via a CTE-based query), pot progress, latest transactions
-- **Transactions** — paginated (10/page), searchable, sortable, filterable by category; full CRUD; CSV import with per-row validation; CSV export (respects the current search/category filters); merchant-based category suggestions when adding a transaction
+- **Overview dashboard**
+  - Total balance, monthly income/expenses, pot progress, and latest transactions
+  - Spending-by-category donut chart and a budget-vs-actual bar chart
+  - Monthly trend chart — income/expenses per month plus a cumulative-expenses line, powered by a `ROW_NUMBER()`-style running-total SQL window function
+  - Unusual-spending alerts — flags categories running far above their historical monthly average, via a CTE-based query
+- **Transactions**
+  - Paginated (10/page), searchable, sortable, filterable by category; full CRUD
+  - CSV import with per-row validation, and CSV export that respects the current search/category filters
+  - Merchant-based category suggestions when adding a transaction
 - **Budgets** — CRUD per category, progress bars with over/warning/ok status, latest 3 transactions per budget category, budget-limit alerts shown when adding/editing a transaction
 - **Pots** — CRUD, deposit/withdraw with balance validation, progress toward savings goal, estimated completion date projected from the average deposit rate
-- **Recurring Bills** — CRUD, search and sort, current-month payment status (Paid / Due / Overdue), automatic detection of recurring payment patterns from transaction history, one-click "mark as paid", in-app banner plus opt-in browser notifications for bills due soon or overdue
+- **Recurring Bills**
+  - CRUD, search and sort, current-month payment status (Paid / Due / Overdue)
+  - Automatic detection of recurring payment patterns from transaction history
+  - One-click "mark as paid", plus an in-app banner and opt-in browser notifications for bills due soon or overdue
 - **Account transfers** — move money between your own accounts; recorded as a direct balance adjustment, not a transaction, so it never distorts income/expense reporting
 - **Custom categories** — create new categories on the fly from the transaction form, no need to pre-seed them
-- Currency switcher (USD/EUR/GBP), applied app-wide and persisted to localStorage
+- **Currency switcher** (USD/EUR/GBP) — applied app-wide and persisted to localStorage
 - **Dark mode** — follows the OS's `prefers-color-scheme` by default, with a manual toggle that overrides it and persists
-- Form validation throughout (Zod on both client and server)
-- Keyboard navigation (sortable table headers, arrow-key pagination, modals close on Escape and trap focus)
-- Accessible confirmation dialogs for all delete actions (no native `window.confirm`)
+- **Accessibility** — keyboard navigation (sortable table headers with `aria-sort`, arrow-key pagination, modals close on Escape and trap focus), accessible confirmation dialogs for all delete actions (no native `window.confirm`)
+- **Validation** — Zod schemas enforced on both client and server
 
 ## Tech Stack
 
-**Backend:** Node.js, Express 5, PostgreSQL, Prisma 6 (ORM), Zod (validation), Multer + csv-parse (CSV import)
-
-**Frontend:** React 19, Vite, React Router, TanStack Query (React Query v5), React Hook Form + Zod, Recharts, Axios, CSS custom properties for theming (light/dark)
-
-**Testing:** Vitest on both sides — unit + Supertest integration tests on the backend (against a dedicated test database), unit + React Testing Library component tests on the frontend — plus one Playwright end-to-end test that drives both together in a real browser
+| Layer | Stack |
+|---|---|
+| **Backend** | Node.js, Express 5, PostgreSQL, Prisma 6 (ORM), Zod (validation), Multer + csv-parse (CSV import) |
+| **Frontend** | React 19, Vite, React Router, TanStack Query (React Query v5), React Hook Form + Zod, Recharts, Axios, CSS custom properties for theming (light/dark) |
+| **Testing** | Vitest on both sides — unit + Supertest integration tests on the backend (dedicated test database), unit + React Testing Library component tests on the frontend — plus one Playwright end-to-end test that drives both together in a real browser |
 
 ## Project Structure
 
@@ -64,7 +87,7 @@ personal-finance-app/
 
 - Node.js 20+
 - Git
-- Either **Docker** (recommended — spins up PostgreSQL for you) or a local **PostgreSQL 13+** install — see step 2 below
+- **PostgreSQL 13+** — see [step 2](#2-database) below
 
 ## Setup
 
@@ -77,17 +100,7 @@ cd personal-finance-app
 
 ### 2. Database
 
-**Option A — Docker Compose (recommended, no local PostgreSQL install needed):**
-
-```bash
-docker compose up -d
-```
-
-This starts a PostgreSQL 16 container with `finance_user` / `finance_pass` already configured, and creates both `finance_db` (dev) and `finance_test_db` (test) databases on first startup. Skip ahead to step 3 — `finance_user` already has full rights on both databases (including for Prisma's migration shadow database).
-
-**Option B — Install PostgreSQL locally:**
-
-- Download the installer from [postgresql.org/download](https://www.postgresql.org/download/) and run it (default port `5432` is fine). This also installs `psql`, the command-line client used below.
+Download the PostgreSQL installer from [postgresql.org/download](https://www.postgresql.org/download/) and run it (default port `5432` is fine). This also installs `psql`, the command-line client used below.
 
 Connect as the PostgreSQL superuser (`postgres`) using `psql` — either from a terminal (on Windows, if `psql` isn't on your PATH, run it from `C:\Program Files\PostgreSQL\<version>\bin\psql.exe`) or via a GUI client like pgAdmin:
 
@@ -145,32 +158,28 @@ The app runs at `http://localhost:5173`.
 
 ### Backend
 
-Backend tests need their own database, kept separate from your dev data (tests wipe/create rows as they run).
-
-If you used **Docker Compose** in step 2, `finance_test_db` already exists — just create the env file:
-
-```bash
-cd server
-cp .env.test.example .env.test
-```
-
-If you installed PostgreSQL **locally**, create the database the same way as the dev database (step 2), just with a different name:
+Backend tests need their own database, kept separate from your dev data (tests wipe/create rows as they run). Create it the same way as the dev database (step 2), just with a different name:
 
 ```sql
 CREATE DATABASE finance_test_db OWNER finance_user;
 GRANT ALL PRIVILEGES ON DATABASE finance_test_db TO finance_user;
 ```
 
-then copy the env file as above.
-
-Run the tests:
+Then create the test env file and run the tests:
 
 ```bash
 cd server
+cp .env.test.example .env.test
 npm test
 ```
 
-This automatically migrates the test database first (`pretest` script), then runs both the unit tests (Zod schemas, `recurringBillStatus.js` — no DB needed) and the integration tests (Supertest against the real Express app) for every resource — accounts (including inter-account transfers, atomic and rollback-safe), transactions (including CSV export and merchant-based category suggestions), budgets, pots, recurring bills, categories, and reports — including a test that fires 10 concurrent pot withdrawals to verify the balance can never go negative, tests that verify the reporting endpoints' raw SQL (`GROUP BY` aggregation, CTEs for the unusual-spending comparison, and the `ROW_NUMBER() OVER (PARTITION BY ...)` window function), and tests for the CSV export endpoint (filtering, and correct quoting of fields containing commas).
+`npm test` automatically migrates the test database first (`pretest` script), then runs:
+
+- **Unit tests** — Zod schemas, `recurringBillStatus.js` (no DB needed)
+- **Integration tests** (Supertest against the real Express app) for every resource: accounts, transactions, budgets, pots, recurring bills, categories, reports
+- A concurrency test that fires 10 simultaneous pot withdrawals to verify the balance can never go negative
+- Tests for the reporting endpoints' raw SQL — `GROUP BY` aggregation, the unusual-spending CTE, and the `ROW_NUMBER() OVER (PARTITION BY ...)` window function
+- Tests for account transfers (atomic, rollback-safe), CSV export (filtering + correct quoting of fields containing commas), and merchant-based category suggestions
 
 Test files run sequentially rather than in parallel (`fileParallelism: false` in `vitest.config.js`) since they all share one real database — this trades a bit of speed for full determinism, since a test that reads across an entire table would otherwise race against other files' concurrent writes.
 
@@ -181,9 +190,14 @@ cd client
 npm test
 ```
 
-Runs unit tests for `useModal` (focus trap, Escape-to-close), `CurrencyProvider` (currency switching, localStorage persistence), `ThemeProvider` (light/dark switching, system-preference detection, localStorage persistence), and the `billReminders`/`potEstimate` pure utility functions (including a regression test for a DST-related date-math bug), plus component tests for every modal form (`TransactionFormModal`, `TransferModal`, `ImportCsvModal`, `PotFormModal`, `PotMoneyModal`, `BudgetFormModal`, `RecurringBillFormModal`) and for `PotCard`, `BudgetCard`, `RecurringBillsTable`, and `ConfirmDialog`. No backend or database needed — these render components in isolation with mocked props.
+Runs with no backend or database needed — components render in isolation with mocked props:
 
-The `Budgets` page also has a test that renders it with mocked API responses to cover the composed page-level logic that the component-level tests can't — merging `budgets`, `budget-vs-actual`, and `latest-by-category` into one view, filtering already-budgeted categories out of the "add" form, and the create/delete flows end-to-end through the page.
+- **Hooks & context** — `useModal` (focus trap, Escape-to-close), `CurrencyProvider` (currency switching, localStorage persistence), `ThemeProvider` (light/dark switching, system-preference detection, localStorage persistence)
+- **Utilities** — `billReminders` and `potEstimate` (including a regression test for a DST-related date-math bug)
+- **Every modal form** — `TransactionFormModal`, `TransferModal`, `ImportCsvModal`, `PotFormModal`, `PotMoneyModal`, `BudgetFormModal`, `RecurringBillFormModal`
+- **Other components** — `PotCard`, `BudgetCard`, `RecurringBillsTable`, `ConfirmDialog`
+
+The `Budgets` page also has a page-level test (mocked API responses) covering logic the component tests can't reach on their own — merging `budgets`, `budget-vs-actual`, and `latest-by-category` into one view, filtering already-budgeted categories out of the "add" form, and the create/delete flows end-to-end through the page.
 
 ### End-to-end
 
@@ -196,7 +210,7 @@ npx playwright install chromium
 npm test
 ```
 
-This starts the backend against `finance_test_db` (same database the backend integration tests use — requires it to already be migrated, see the Backend section above) and the Vite dev server, then runs a single happy-path test: open the Transactions page, add a transaction through the real UI, and confirm it shows up in the table. Both servers are started and torn down automatically by Playwright (`webServer` in `e2e/playwright.config.js`) and reused if you already have them running locally.
+This starts the backend against `finance_test_db` (same database the backend integration tests use — requires it to already be migrated, see the [Backend testing](#backend) section above) and the Vite dev server, then runs a single happy-path test: open the Transactions page, add a transaction through the real UI, and confirm it shows up in the table. Both servers are started and torn down automatically by Playwright (`webServer` in `e2e/playwright.config.js`) and reused if you already have them running locally.
 
 ## Continuous Integration
 
@@ -206,11 +220,12 @@ Every push and pull request to `master` runs [`.github/workflows/ci.yml`](.githu
 - **server** — `npm test` against a disposable PostgreSQL 16 service container (migrations applied automatically via the `pretest` script, same as local dev)
 - **e2e** — installs server, client, and e2e dependencies plus the Playwright Chromium browser, migrates its own disposable PostgreSQL 16 service container, then runs the Playwright suite against the real backend and Vite dev server (Playwright's `webServer` config starts both automatically)
 
-Both jobs must pass before a PR is mergeable. No local setup is required to benefit from this — it runs entirely on GitHub's infrastructure.
+All three jobs must pass before a PR is mergeable. No local setup is required to benefit from this — it runs entirely on GitHub's infrastructure.
 
 ## Scripts
 
 **server/**
+
 | Command | Description |
 |---|---|
 | `npm run dev` | Start the API with nodemon (auto-restart on change) |
@@ -222,6 +237,7 @@ Both jobs must pass before a PR is mergeable. No local setup is required to bene
 | `npx prisma studio` | Browse the database in a GUI |
 
 **client/**
+
 | Command | Description |
 |---|---|
 | `npm run dev` | Start the Vite dev server |
@@ -245,7 +261,12 @@ All endpoints are prefixed with `/api`.
 | Categories | `GET /categories`, `POST /categories` (creates a custom category) |
 | Reports | `GET /reports/overview`, `GET /reports/spending-by-category`, `GET /reports/budget-vs-actual`, `GET /reports/latest-by-category`, `GET /reports/monthly-trend`, `GET /reports/unusual-spending` |
 
-`GET /transactions` supports `page`, `limit`, `search`, `category`, `accountId`, `sortBy`, `order` query parameters. `GET /transactions/export` accepts the same `search`/`category`/`accountId`/`sortBy`/`order` filters (no pagination) and returns a CSV file. `GET /transactions/suggest-category` takes a `merchant` query parameter and returns that merchant's most-used category, or `null` if there's no history for it. `POST /accounts/transfer` takes `fromAccountId`, `toAccountId`, and `amount`, and atomically moves the balance between the two accounts (rolled back entirely if either side fails).
+A few endpoints worth calling out:
+
+- `GET /transactions` supports `page`, `limit`, `search`, `category`, `accountId`, `sortBy`, `order` query parameters.
+- `GET /transactions/export` accepts the same filters (no pagination) and returns a CSV file.
+- `GET /transactions/suggest-category` takes a `merchant` query parameter and returns that merchant's most-used category, or `null` if there's no history for it.
+- `POST /accounts/transfer` takes `fromAccountId`, `toAccountId`, and `amount`, and atomically moves the balance between the two accounts (rolled back entirely if either side fails).
 
 ## Notes
 
