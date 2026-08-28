@@ -12,6 +12,7 @@ import {
   YAxis,
   CartesianGrid,
   ComposedChart,
+  LineChart,
   Line,
 } from "recharts";
 import {
@@ -20,12 +21,17 @@ import {
   getBudgetVsActual,
   getMonthlyTrend,
   getUnusualSpending,
+  getNetWorthHistory
 } from "../api/client";
 import useCurrency from "../hooks/useCurrency";
 import "../stylesheets/Overview.css";
 
 function formatMonthLabel(value) {
   return new Date(value).toLocaleDateString("en-US", { month: "short", year: "numeric" });
+}
+
+function formatDateLabel(value) {
+  return new Date(value).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
 function Overview() {
@@ -49,6 +55,10 @@ function Overview() {
   const { data: unusualSpending } = useQuery({
     queryKey: ["unusual-spending"],
     queryFn: getUnusualSpending,
+  });
+  const { data: netWorthHistory } = useQuery({
+    queryKey: ["net-worth-history"],
+    queryFn: getNetWorthHistory,
   });
 
   if (isLoading) return <p>Loading...</p>;
@@ -132,6 +142,32 @@ function Overview() {
             </ResponsiveContainer>
           ) : (
             <p>No budgets set.</p>
+          )}
+        </section>
+      </div>
+
+      <div className="overview-grid">
+        <section className="panel panel-wide">
+          <h3>Net Worth History</h3>
+          {netWorthHistory && netWorthHistory.length > 0 ? (
+            <ResponsiveContainer width="100%" height={280}>
+              <LineChart data={netWorthHistory} margin={{ left: 10 }}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" tickFormatter={formatDateLabel} interval="preserveStartEnd" />
+                <YAxis domain={["auto", "auto"]} tickFormatter={(v) => formatCurrency(v)} width={90} />
+                <Tooltip labelFormatter={formatDateLabel} formatter={(value) => formatCurrency(value)} />
+                <Line
+                  type="monotone"
+                  dataKey="totalBalance"
+                  name="Net Worth"
+                  stroke="#00b894"
+                  strokeWidth={2}
+                  dot={false}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          ) : (
+            <p>Not enough data yet.</p>
           )}
         </section>
       </div>

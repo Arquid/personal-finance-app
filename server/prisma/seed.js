@@ -17,6 +17,7 @@ async function main() {
   await prisma.pot.deleteMany();
   await prisma.category.deleteMany();
   await prisma.account.deleteMany();
+  await prisma.balanceSnapshot.deleteMany();
 
   console.log('Creating categories...');
   const categoryData = [
@@ -160,6 +161,24 @@ async function main() {
   await prisma.transaction.createMany({ data: transactions });
 
   console.log(`Seed complete: ${transactions.length} transactions created.`);
+
+  console.log('Creating balance snapshot history...');
+  const finalTotal = Number(checking.balance) + Number(savings.balance) + Number(creditCard.balance);
+  const snapshotDays = 90;
+  const startingTotal = finalTotal * 0.85;
+  const snapshots = [];
+  const todayUtc = new Date();
+  for (let i = snapshotDays - 1; i >= 0; i--) {
+    // UTC-normalized, same as startOfToday() in reports.js, so the backfilled
+    // dates land on the same calendar days the real upsert would use.
+    const date = new Date(Date.UTC(todayUtc.getFullYear(), todayUtc.getMonth(), todayUtc.getDate() - i));
+    const progress = (snapshotDays - 1 - i) / (snapshotDays - 1);
+    const trendValue = startingTotal + (finalTotal - startingTotal) * progress;
+    const totalBalance = i === 0 ? finalTotal : Math.round((trendValue + randomBetween(-40, 40)) * 100) / 100;
+    snapshots.push({ date, totalBalance });
+  }
+  await prisma.balanceSnapshot.createMany({ data: snapshots });
+  console.log(`Seeded ${snapshots.length} days of balance history.`);
 }
 
 main()

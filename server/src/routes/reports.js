@@ -8,6 +8,13 @@ function monthRange(date = new Date()) {
   return { start, end };
 }
 
+function startOfToday() {
+  // UTC-normalized so the calendar day survives the round-trip through the
+  // @db.Date column regardless of the server's local timezone offset.
+  const now = new Date();
+  return new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+}
+
 router.get("/overview", async (req, res, next) => {
   try {
     const { start, end } = monthRange();
@@ -31,6 +38,12 @@ router.get("/overview", async (req, res, next) => {
     ]);
 
     const totalBalance = accounts.reduce((sum, a) => sum + Number(a.balance), 0);
+
+    await prisma.balanceSnapshot.upsert({
+      where: { date: startOfToday() },
+      update: { totalBalance },
+      create: { date: startOfToday(), totalBalance },
+    });
 
     res.json({
       totalBalance,
@@ -184,9 +197,6 @@ router.get("/monthly-trend", async (req, res, next) => {
 
 router.get("/unusual-spending", async (req, res, next) => {
   try {
-    // A category is flagged as "unusual" once it has at least 2 months of history to
-    // compare against (so a brand-new category isn't flagged on its first month) and
-    // this month's spending exceeds 1.5x its historical monthly average.
     const rows = await prisma.$queryRaw`
       WITH monthly_category_spending AS (
         SELECT
@@ -237,6 +247,17 @@ router.get("/unusual-spending", async (req, res, next) => {
     });
 
     res.json(result);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get("/net-worth-history", async (req, res, next) => {
+  try {
+    const snapshots = await prisma.balanceSnapshot.findMany({
+      orderBy: { date: "asc" },
+    });
+    res.json(snapshots.map((s) => ({ date: s.date, totalBalance: Number(s.totalBalance) })));
   } catch (err) {
     next(err);
   }

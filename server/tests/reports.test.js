@@ -9,8 +9,13 @@ describe("Reports API", () => {
   let budgetId;
   let accountId;
   const transactionIds = [];
+  const snapshotIds = [];
 
   afterEach(async () => {
+    if (snapshotIds.length) {
+      await prisma.balanceSnapshot.deleteMany({ where: { id: { in: snapshotIds } } });
+      snapshotIds.length = 0;
+    }
     if (transactionIds.length) {
       await prisma.transaction.deleteMany({ where: { id: { in: transactionIds } } });
       transactionIds.length = 0;
@@ -30,11 +35,6 @@ describe("Reports API", () => {
   });
 
   it("reflects a newly created account's balance in the overview", async () => {
-    // Regression-safe by design: this asserts against an account this test
-    // just created, not against a live sum of the whole accounts table.
-    // Other test files run in parallel against the same database and freely
-    // create/delete accounts, so comparing two separate full-table snapshots
-    // (one from /reports/overview, one from /accounts) would be flaky.
     const account = await prisma.account.create({
       data: { name: `Overview Test Account ${Date.now()}`, type: "checking", balance: 250 },
     });
@@ -257,5 +257,35 @@ describe("Reports API", () => {
     const res = await request(app).get("/api/reports/unusual-spending");
     expect(res.status).toBe(200);
     expect(res.body.find((r) => r.categoryId === categoryId)).toBeUndefined();
+  });
+
+  it("records today's total balance as a snapshot when the overview loads", async () => {
+    const res = await request(app).get("/api/reports/overview");
+    expect(res.status).toBe(200);
+
+    const now = new Date();
+    const today = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+    const snapshot = await prisma.balanceSnapshot.findUnique({ where: { date: today } });
+    expect(snapshot).not.toBeNull();
+    expect(Number(snapshot.totalBalance)).toBe(res.body.totalBalance);
+  });
+
+  it("returns net worth history ordered by date", async () => {
+    const s1 = await prisma.balanceSnapshot.create({
+      data: { date: new Date(Date.UTC(2020, 0, 1)), totalBalance: 1000 },
+    });
+    const s2 = await prisma.balanceSnapshot.create({
+      data: { date: new Date(Date.UTC(2020, 0, 2)), totalBalance: 1050 },
+    });
+    snapshotIds.push(s1.id, s2.id);
+
+    const res = await request(app).get("/api/reports/net-worth-history");
+    expect(res.status).toBe(200);
+
+    const idx1 = res.body.findIndex((s) => new Date(s.date).getTime() === Date.UTC(2020, 0, 1));
+    const idx2 = res.body.findIndex((s) => new Date(s.date).getTime() === Date.UTC(2020, 0, 2));
+    expect(idx1).toBeGreaterThanOrEqual(0);
+    expect(idx2).toBeGreaterThan(idx1);
+    expect(res.body[idx2].totalBalance).toBe(1050);
   });
 });

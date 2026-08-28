@@ -24,6 +24,7 @@ A full-stack personal finance manager with transaction tracking, budget manageme
   - Total balance, monthly income/expenses, pot progress, and latest transactions
   - Spending-by-category donut chart and a budget-vs-actual bar chart
   - Monthly trend chart — income/expenses per month plus a cumulative-expenses line, powered by a `ROW_NUMBER()`-style running-total SQL window function
+  - Net worth history chart — daily snapshots of total balance across all accounts, recorded automatically whenever the dashboard loads
   - Unusual-spending alerts — flags categories running far above their historical monthly average, via a CTE-based query
 - **Transactions**
   - Paginated (10/page), searchable, sortable, filterable by category; full CRUD
@@ -180,6 +181,7 @@ npm test
 - A concurrency test that fires 10 simultaneous pot withdrawals to verify the balance can never go negative
 - Tests for the reporting endpoints' raw SQL — `GROUP BY` aggregation, the unusual-spending CTE, and the `ROW_NUMBER() OVER (PARTITION BY ...)` window function
 - Tests for account transfers (atomic, rollback-safe), CSV export (filtering + correct quoting of fields containing commas), and merchant-based category suggestions
+- A test that the daily net worth snapshot is recorded (and upserted, not duplicated) when the overview loads, plus ordering for the net worth history endpoint
 
 Test files run sequentially rather than in parallel (`fileParallelism: false` in `vitest.config.js`) since they all share one real database — this trades a bit of speed for full determinism, since a test that reads across an entire table would otherwise race against other files' concurrent writes.
 
@@ -259,7 +261,7 @@ All endpoints are prefixed with `/api`.
 | Pots | `GET/POST /pots`, `GET/PUT/DELETE /pots/:id`, `POST /pots/:id/deposit`, `POST /pots/:id/withdraw` |
 | Recurring Bills | `GET/POST /recurring-bills`, `GET/PUT/DELETE /recurring-bills/:id`, `GET /recurring-bills/detect` |
 | Categories | `GET /categories`, `POST /categories` (creates a custom category) |
-| Reports | `GET /reports/overview`, `GET /reports/spending-by-category`, `GET /reports/budget-vs-actual`, `GET /reports/latest-by-category`, `GET /reports/monthly-trend`, `GET /reports/unusual-spending` |
+| Reports | `GET /reports/overview`, `GET /reports/spending-by-category`, `GET /reports/budget-vs-actual`, `GET /reports/latest-by-category`, `GET /reports/monthly-trend`, `GET /reports/unusual-spending`, `GET /reports/net-worth-history` |
 
 A few endpoints worth calling out:
 
@@ -267,12 +269,14 @@ A few endpoints worth calling out:
 - `GET /transactions/export` accepts the same filters (no pagination) and returns a CSV file.
 - `GET /transactions/suggest-category` takes a `merchant` query parameter and returns that merchant's most-used category, or `null` if there's no history for it.
 - `POST /accounts/transfer` takes `fromAccountId`, `toAccountId`, and `amount`, and atomically moves the balance between the two accounts (rolled back entirely if either side fails).
+- `GET /reports/overview` has a side effect: it upserts today's total balance into `BalanceSnapshot`, which is what `GET /reports/net-worth-history` reads back. See the note below on why this isn't derived from transactions instead.
 
 ## Notes
 
 - Prisma is pinned to `6.x` rather than the current `7.x` major release — v7 switched to a TypeScript/ESM-only generated client and driver adapters, which doesn't fit this project's plain JavaScript/CommonJS stack.
 - The database has no fixed transaction/account IDs baked into the app — always check current IDs via the API (e.g. `GET /accounts`) rather than assuming they start at 1, since `db seed` re-creates rows with fresh auto-incremented IDs each time it runs.
 - This is a single-user demo app with no authentication or authorization layer — every API endpoint is open to anyone who can reach the port. CORS is restricted to `CORS_ORIGIN` (defaults to the Vite dev server), but that's not a substitute for auth. Don't deploy this to a public network without adding one.
+- `Account.balance` is a manually maintained field, not derived from `Transaction` rows — creating/editing/importing transactions never touches it (only direct account edits and `POST /accounts/transfer` do). That's why net worth history is tracked via a separate `BalanceSnapshot` table (one row per calendar day, upserted on each overview load) instead of being reconstructed from transaction deltas, which wouldn't reflect the real balance.
 
 ## License
 
