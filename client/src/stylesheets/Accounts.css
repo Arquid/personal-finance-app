@@ -1,0 +1,85 @@
+.accounts-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.accounts-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.accounts-header button {
+  background: var(--color-primary);
+  color: var(--color-primary-text);
+  border: none;
+  border-radius: 8px;
+  padding: 10px 16px;
+  cursor: pointer;
+}
+
+.accounts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.account-card {
+  background: var(--color-surface);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 1px 2px var(--color-shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.account-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.account-card-title {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.account-card-title h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.account-type-badge {
+  align-self: flex-start;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  background: var(--color-bg);
+  border-radius: 6px;
+  padding: 2px 8px;
+}
+
+.account-card-actions button {
+  background: none;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 4px 10px;
+  margin-left: 6px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.account-balance {
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.account-balance.positive {
+  color: var(--color-success);
+}
+
+.account-balance.negative {
+  color: var(--color-danger);
+}

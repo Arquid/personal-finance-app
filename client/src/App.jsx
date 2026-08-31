@@ -7,6 +7,7 @@ import Transactions from "./pages/Transactions";
 import Budgets from "./pages/Budgets";
 import Pots from "./pages/Pots";
 import RecurringBills from "./pages/RecurringBills";
+import Accounts from "./pages/Accounts";
 
 function App() {
   const location = useLocation();
@@ -18,6 +19,7 @@ function App() {
         <ErrorBoundary key={location.pathname}>
           <Routes>
             <Route path="/" element={<Overview />} />
+            <Route path="/accounts" element={<Accounts />} />
             <Route path="/transactions" element={<Transactions />} />
             <Route path="/budgets" element={<Budgets />} />
             <Route path="/pots" element={<Pots />} />

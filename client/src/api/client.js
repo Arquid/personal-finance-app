@@ -7,6 +7,8 @@ const api = axios.create({ baseURL: API_BASE_URL });
 // accounts
 export const getAccounts = () => api.get("/accounts").then((r) => r.data);
 export const createAccount = (data) => api.post("/accounts", data).then((r) => r.data);
+export const updateAccount = (id, data) => api.put(`/accounts/${id}`, data).then((r) => r.data);
+export const deleteAccount = (id) => api.delete(`/accounts/${id}`).then((r) => r.data);
 export const transferBetweenAccounts = (data) =>
   api.post("/accounts/transfer", data).then((r) => r.data);
 

@@ -36,6 +36,7 @@ A full-stack personal finance manager with transaction tracking, budget manageme
   - CRUD, search and sort, current-month payment status (Paid / Due / Overdue)
   - Automatic detection of recurring payment patterns from transaction history
   - One-click "mark as paid", plus an in-app banner and opt-in browser notifications for bills due soon or overdue
+- **Accounts** — CRUD (checking/savings/credit), new accounts default to a zero opening balance; deleting an account also deletes its transactions (warned about before confirming)
 - **Account transfers** — move money between your own accounts; recorded as a direct balance adjustment, not a transaction, so it never distorts income/expense reporting
 - **Custom categories** — create new categories on the fly from the transaction form, no need to pre-seed them
 - **Currency switcher** (USD/EUR/GBP) — applied app-wide and persisted to localStorage
@@ -196,10 +197,10 @@ Runs with no backend or database needed — components render in isolation with 
 
 - **Hooks & context** — `useModal` (focus trap, Escape-to-close), `CurrencyProvider` (currency switching, localStorage persistence), `ThemeProvider` (light/dark switching, system-preference detection, localStorage persistence)
 - **Utilities** — `billReminders` and `potEstimate` (including a regression test for a DST-related date-math bug)
-- **Every modal form** — `TransactionFormModal`, `TransferModal`, `ImportCsvModal`, `PotFormModal`, `PotMoneyModal`, `BudgetFormModal`, `RecurringBillFormModal`
+- **Every modal form** — `TransactionFormModal`, `TransferModal`, `ImportCsvModal`, `PotFormModal`, `PotMoneyModal`, `BudgetFormModal`, `RecurringBillFormModal`, `AccountFormModal`
 - **Other components** — `PotCard`, `BudgetCard`, `RecurringBillsTable`, `ConfirmDialog`
 
-The `Budgets` and `Overview` pages also have page-level tests (mocked API responses) covering logic the component tests can't reach on their own. `Budgets` covers merging `budgets`, `budget-vs-actual`, and `latest-by-category` into one view, filtering already-budgeted categories out of the "add" form, and the create/delete flows end-to-end through the page. `Overview` covers the loading/error states, the summary cards, the pots and latest-transactions lists, the unusual-spending banner's conditional visibility, and each chart's empty-state fallback versus its data-present rendering.
+The `Budgets`, `Overview`, and `Accounts` pages also have page-level tests (mocked API responses) covering logic the component tests can't reach on their own. `Budgets` covers merging `budgets`, `budget-vs-actual`, and `latest-by-category` into one view, filtering already-budgeted categories out of the "add" form, and the create/delete flows end-to-end through the page. `Overview` covers the loading/error states, the summary cards, the pots and latest-transactions lists, the unusual-spending banner's conditional visibility, and each chart's empty-state fallback versus its data-present rendering. `Accounts` covers the empty-account-list state, a zero-balance account rendering with the same styling as a positive one, a negative balance getting the "danger" styling, and the delete-cascade warning shown before confirming.
 
 ### End-to-end
 
