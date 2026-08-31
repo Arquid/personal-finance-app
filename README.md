@@ -199,7 +199,7 @@ Runs with no backend or database needed — components render in isolation with 
 - **Every modal form** — `TransactionFormModal`, `TransferModal`, `ImportCsvModal`, `PotFormModal`, `PotMoneyModal`, `BudgetFormModal`, `RecurringBillFormModal`
 - **Other components** — `PotCard`, `BudgetCard`, `RecurringBillsTable`, `ConfirmDialog`
 
-The `Budgets` page also has a page-level test (mocked API responses) covering logic the component tests can't reach on their own — merging `budgets`, `budget-vs-actual`, and `latest-by-category` into one view, filtering already-budgeted categories out of the "add" form, and the create/delete flows end-to-end through the page.
+The `Budgets` and `Overview` pages also have page-level tests (mocked API responses) covering logic the component tests can't reach on their own. `Budgets` covers merging `budgets`, `budget-vs-actual`, and `latest-by-category` into one view, filtering already-budgeted categories out of the "add" form, and the create/delete flows end-to-end through the page. `Overview` covers the loading/error states, the summary cards, the pots and latest-transactions lists, the unusual-spending banner's conditional visibility, and each chart's empty-state fallback versus its data-present rendering.
 
 ### End-to-end
 
