@@ -18,8 +18,12 @@ function AccountCard({ account, onEdit, onDelete }) {
           <span className="account-type-badge">{TYPE_LABELS[account.type] ?? account.type}</span>
         </div>
         <div className="account-card-actions">
-          <button onClick={() => onEdit(account)}>Edit</button>
-          <button onClick={() => onDelete(account)}>Delete</button>
+          <button onClick={() => onEdit(account)} aria-label={`Edit ${account.name}`}>
+            Edit
+          </button>
+          <button onClick={() => onDelete(account)} aria-label={`Delete ${account.name}`}>
+            Delete
+          </button>
         </div>
       </div>
 

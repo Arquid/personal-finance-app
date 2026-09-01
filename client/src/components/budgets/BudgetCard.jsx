@@ -12,8 +12,12 @@ function BudgetCard({ budget, onEdit, onDelete }) {
           <h3>{budget.category}</h3>
         </div>
         <div className="budget-card-actions">
-          <button onClick={() => onEdit(budget)}>Edit</button>
-          <button onClick={() => onDelete(budget)}>Delete</button>
+          <button onClick={() => onEdit(budget)} aria-label={`Edit ${budget.category}`}>
+            Edit
+          </button>
+          <button onClick={() => onDelete(budget)} aria-label={`Delete ${budget.category}`}>
+            Delete
+          </button>
         </div>
       </div>
 

@@ -17,8 +17,12 @@ function PotCard({ pot, onEdit, onDelete, onDeposit, onWithdraw }) {
           <h3>{pot.name}</h3>
         </div>
         <div className="pot-card-actions">
-          <button onClick={() => onEdit(pot)}>Edit</button>
-          <button onClick={() => onDelete(pot)}>Delete</button>
+          <button onClick={() => onEdit(pot)} aria-label={`Edit ${pot.name}`}>
+            Edit
+          </button>
+          <button onClick={() => onDelete(pot)} aria-label={`Delete ${pot.name}`}>
+            Delete
+          </button>
         </div>
       </div>
 
