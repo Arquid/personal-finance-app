@@ -57,8 +57,6 @@ A full-stack personal finance manager with transaction tracking, budget manageme
 ```
 personal-finance-app/
 ├── .github/workflows/ci.yml CI: lint + test on every push/PR to master
-├── docker-compose.yml       Local PostgreSQL (dev + test databases), no manual install needed
-├── docker/init-test-db.sql  Creates finance_test_db on first container start
 ├── e2e/                     Playwright end-to-end test (drives the real backend + frontend together)
 ├── server/                  Express API
 │   ├── prisma/
