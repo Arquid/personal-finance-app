@@ -276,6 +276,7 @@ A few endpoints worth calling out:
 - The database has no fixed transaction/account IDs baked into the app — always check current IDs via the API (e.g. `GET /accounts`) rather than assuming they start at 1, since `db seed` re-creates rows with fresh auto-incremented IDs each time it runs.
 - This is a single-user demo app with no authentication or authorization layer — every API endpoint is open to anyone who can reach the port. CORS is restricted to `CORS_ORIGIN` (defaults to the Vite dev server), but that's not a substitute for auth. Don't deploy this to a public network without adding one.
 - `Account.balance` is a manually maintained field, not derived from `Transaction` rows — creating/editing/importing transactions never touches it (only direct account edits and `POST /accounts/transfer` do). That's why net worth history is tracked via a separate `BalanceSnapshot` table (one row per calendar day, upserted on each overview load) instead of being reconstructed from transaction deltas, which wouldn't reflect the real balance.
+- Pages are lazy-loaded per route (`React.lazy` + `Suspense` in `App.jsx`) so the initial bundle stays small — Recharts alone is a few hundred kB, and it's only downloaded once a chart-bearing page (Overview) is actually visited.
 
 ## License
 
