@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const prisma = require("../prismaClient");
+const { getCurrentMonthRange } = require("../utils/recurringBillStatus");
 
 function monthRange(date = new Date()) {
   const start = new Date(date.getFullYear(), date.getMonth(), 1);
@@ -264,22 +265,35 @@ router.get("/cash-flow-forecast", async (req, res, next) => {
     discretionaryLookbackStart.setDate(discretionaryLookbackStart.getDate() - DISCRETIONARY_LOOKBACK_DAYS);
     const incomeLookbackStart = new Date(today.getFullYear(), today.getMonth() - INCOME_LOOKBACK_MONTHS, 1);
 
-    const [accounts, activeBills, discretionaryAgg, incomeAgg, lastIncomeTx] = await Promise.all([
-      prisma.account.findMany(),
-      prisma.recurringBill.findMany({ where: { isActive: true } }),
-      prisma.transaction.aggregate({
-        _sum: { amount: true },
-        where: { amount: { lt: 0 }, isRecurring: false, date: { gte: discretionaryLookbackStart } },
-      }),
-      prisma.transaction.aggregate({
-        _sum: { amount: true },
-        where: { amount: { gt: 0 }, date: { gte: incomeLookbackStart } },
-      }),
-      prisma.transaction.findFirst({
-        where: { amount: { gt: 0 } },
-        orderBy: { date: "desc" },
-      }),
-    ]);
+    const { start: currentMonthStart, end: currentMonthEnd } = getCurrentMonthRange();
+
+    const [accounts, activeBills, discretionaryAgg, incomeAgg, lastIncomeTx, paidThisMonth] =
+      await Promise.all([
+        prisma.account.findMany(),
+        prisma.recurringBill.findMany({ where: { isActive: true } }),
+        prisma.transaction.aggregate({
+          _sum: { amount: true },
+          where: { amount: { lt: 0 }, isRecurring: false, date: { gte: discretionaryLookbackStart } },
+        }),
+        prisma.transaction.aggregate({
+          _sum: { amount: true },
+          where: { amount: { gt: 0 }, date: { gte: incomeLookbackStart } },
+        }),
+        prisma.transaction.findFirst({
+          where: { amount: { gt: 0 } },
+          orderBy: { date: "desc" },
+        }),
+        prisma.transaction.findMany({
+          where: { date: { gte: currentMonthStart, lt: currentMonthEnd }, merchant: { not: null } },
+          select: { merchant: true },
+        }),
+      ]);
+
+    // Same "is this bill already paid this cycle" check the Recurring Bills page
+    // uses — without it, a bill paid early (before its dueDay) would be counted
+    // twice: once as the real transaction already reflected in the balance, and
+    // again as a projected deduction on its still-upcoming nominal due date.
+    const paidMerchants = new Set(paidThisMonth.map((t) => t.merchant.toLowerCase()));
 
     const currentTotal = accounts.reduce((sum, a) => sum + Number(a.balance), 0);
     // Smoothed daily drag from everyday (non-recurring) spending, spread evenly
@@ -299,9 +313,14 @@ router.get("/cash-flow-forecast", async (req, res, next) => {
       date.setDate(date.getDate() + i);
       const dayOfMonth = date.getDate();
 
+      const isCurrentCycle = date.getFullYear() === today.getFullYear() && date.getMonth() === today.getMonth();
+
       let delta = -avgDailyDiscretionary;
       for (const bill of activeBills) {
-        if (bill.dueDay === dayOfMonth) delta -= Number(bill.amount);
+        if (bill.dueDay !== dayOfMonth) continue;
+        const alreadyPaidThisCycle =
+          isCurrentCycle && bill.merchant && paidMerchants.has(bill.merchant.toLowerCase());
+        if (!alreadyPaidThisCycle) delta -= Number(bill.amount);
       }
       if (expectedIncomeDay !== null && dayOfMonth === expectedIncomeDay) {
         delta += avgMonthlyIncome;

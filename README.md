@@ -25,7 +25,7 @@ A full-stack personal finance manager with transaction tracking, budget manageme
   - Spending-by-category donut chart and a budget-vs-actual bar chart
   - Monthly trend chart — income/expenses per month plus a cumulative-expenses line, powered by a `ROW_NUMBER()`-style running-total SQL window function
   - Net worth history chart — daily snapshots of total balance across all accounts, recorded automatically whenever the dashboard loads
-  - Cash flow forecast chart — projects the next 30 days' balance from active recurring bills (applied on their due day), the average of the last 3 months' income (applied on the day it typically arrives), and a smoothed daily average of everyday non-recurring spending
+  - Cash flow forecast chart — projects the next 30 days' balance from active recurring bills not yet paid this cycle (applied on their due day), the average of the last 3 months' income (applied on the day it typically arrives), and a smoothed daily average of everyday non-recurring spending
   - Unusual-spending alerts — flags categories running far above their historical monthly average, via a CTE-based query
 - **Transactions**
   - Paginated (10/page), searchable, sortable, filterable by category; full CRUD
@@ -182,7 +182,7 @@ npm test
 - Tests for the reporting endpoints' raw SQL — `GROUP BY` aggregation, the unusual-spending CTE, and the `ROW_NUMBER() OVER (PARTITION BY ...)` window function
 - Tests for account transfers (atomic, rollback-safe), CSV export (filtering + correct quoting of fields containing commas), and merchant-based category suggestions
 - A test that the daily net worth snapshot is recorded (and upserted, not duplicated) when the overview loads, plus ordering for the net worth history endpoint
-- Tests for the cash flow forecast — that an active recurring bill's amount is subtracted exactly on its due date, and that the last 3 months' average income is added on the day it's expected to recur
+- Tests for the cash flow forecast — that an active recurring bill's amount is subtracted exactly on its due date, that the last 3 months' average income is added on the day it's expected to recur, and that a bill already paid this cycle is excluded so it isn't double-counted
 
 Test files run sequentially rather than in parallel (`fileParallelism: false` in `vitest.config.js`) since they all share one real database — this trades a bit of speed for full determinism, since a test that reads across an entire table would otherwise race against other files' concurrent writes.
 

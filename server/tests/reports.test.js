@@ -344,4 +344,35 @@ describe("Reports API", () => {
       await prisma.account.delete({ where: { id: account.id } });
     }
   });
+
+  it("excludes a bill's amount from the forecast once it's already been paid this cycle", async () => {
+    const today = new Date();
+    const targetDate = new Date(today);
+    targetDate.setDate(targetDate.getDate() + 3);
+
+    const merchant = `Forecast Paid Merchant ${Date.now()}`;
+    const bill = await prisma.recurringBill.create({
+      data: { name: merchant, merchant, amount: 500, dueDay: targetDate.getDate(), isActive: true },
+    });
+    const account = await prisma.account.create({
+      data: { name: `Forecast Paid Account ${Date.now()}`, type: "checking", balance: 0 },
+    });
+    // Paid early today, before the bill's still-upcoming nominal due date.
+    const tx = await prisma.transaction.create({
+      data: { amount: -500, description: "Paid early", merchant, date: today, accountId: account.id },
+    });
+
+    try {
+      const res = await request(app).get("/api/reports/cash-flow-forecast");
+      expect(res.status).toBe(200);
+
+      const dropAtTarget = res.body[1].projectedBalance - res.body[2].projectedBalance;
+      // Should only be the smoothed discretionary drag, nowhere near the
+      // full $500 — otherwise the already-paid bill would be double-counted.
+      expect(Math.abs(dropAtTarget)).toBeLessThan(50);
+    } finally {
+      await prisma.recurringBill.delete({ where: { id: bill.id } });
+      await prisma.account.delete({ where: { id: account.id } }); // cascades the transaction
+    }
+  });
 });
