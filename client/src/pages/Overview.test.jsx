@@ -9,6 +9,7 @@ import {
   getMonthlyTrend,
   getUnusualSpending,
   getNetWorthHistory,
+  getCashFlowForecast,
 } from "../api/client";
 
 vi.mock("../api/client", () => ({
@@ -18,6 +19,7 @@ vi.mock("../api/client", () => ({
   getMonthlyTrend: vi.fn(),
   getUnusualSpending: vi.fn(),
   getNetWorthHistory: vi.fn(),
+  getCashFlowForecast: vi.fn(),
 }));
 
 const overviewData = {
@@ -43,6 +45,7 @@ describe("Overview page", () => {
     getMonthlyTrend.mockResolvedValue([]);
     getUnusualSpending.mockResolvedValue([]);
     getNetWorthHistory.mockResolvedValue([]);
+    getCashFlowForecast.mockResolvedValue([]);
   });
 
   it("shows a loading state before the overview data arrives", () => {
@@ -96,7 +99,7 @@ describe("Overview page", () => {
     await screen.findByText("$10,230.35");
     expect(screen.getByText("No spending this month.")).toBeInTheDocument();
     expect(screen.getByText("No budgets set.")).toBeInTheDocument();
-    expect(screen.getAllByText("Not enough data yet.")).toHaveLength(2); // Net Worth History + Monthly Trend
+    expect(screen.getAllByText("Not enough data yet.")).toHaveLength(3); // Net Worth History + Cash Flow Forecast + Monthly Trend
   });
 
   it("renders chart sections instead of empty-state messages once data exists", async () => {
@@ -110,6 +113,9 @@ describe("Overview page", () => {
       { month: "2026-07-01T00:00:00.000Z", income: 3200, expenses: 1200, runningExpenses: 1200 },
     ]);
     getNetWorthHistory.mockResolvedValue([{ date: "2026-08-01T00:00:00.000Z", totalBalance: 10000 }]);
+    getCashFlowForecast.mockResolvedValue([
+      { date: "2026-08-29T00:00:00.000Z", projectedBalance: 10100 },
+    ]);
 
     renderWithProviders(<Overview />);
     await screen.findByText("$10,230.35");

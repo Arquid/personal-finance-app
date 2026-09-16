@@ -288,4 +288,60 @@ describe("Reports API", () => {
     expect(idx2).toBeGreaterThan(idx1);
     expect(res.body[idx2].totalBalance).toBe(1050);
   });
+
+  it("returns a 30-day cash flow forecast that drops by an active bill's amount on its due date", async () => {
+    const today = new Date();
+    const targetDate = new Date(today);
+    targetDate.setDate(targetDate.getDate() + 15);
+
+    const bill = await prisma.recurringBill.create({
+      data: {
+        name: `Forecast Bill ${Date.now()}`,
+        amount: 500,
+        dueDay: targetDate.getDate(),
+        isActive: true,
+      },
+    });
+
+    try {
+      const res = await request(app).get("/api/reports/cash-flow-forecast");
+      expect(res.status).toBe(200);
+      expect(res.body).toHaveLength(30);
+
+      const dropAtTarget = res.body[13].projectedBalance - res.body[14].projectedBalance;
+      expect(dropAtTarget).toBeCloseTo(500, 2);
+    } finally {
+      await prisma.recurringBill.delete({ where: { id: bill.id } });
+    }
+  });
+
+  it("adds the average of the last 3 months' income around the day it typically arrives", async () => {
+    const today = new Date();
+    const targetDate = new Date(today);
+    targetDate.setDate(targetDate.getDate() + 20);
+    const incomeDay = targetDate.getDate();
+
+    const account = await prisma.account.create({
+      data: { name: `Forecast Income Account ${Date.now()}`, type: "checking", balance: 0 },
+    });
+    const tx = await prisma.transaction.create({
+      data: {
+        amount: 300,
+        description: "Forecast income test",
+        date: new Date(today.getFullYear(), today.getMonth() - 1, incomeDay),
+        accountId: account.id,
+      },
+    });
+
+    try {
+      const res = await request(app).get("/api/reports/cash-flow-forecast");
+      expect(res.status).toBe(200);
+
+      const bumpAtTarget = res.body[19].projectedBalance - res.body[18].projectedBalance;
+      expect(bumpAtTarget).toBeCloseTo(100, 2); // 300 / 3 months
+    } finally {
+      await prisma.transaction.delete({ where: { id: tx.id } });
+      await prisma.account.delete({ where: { id: account.id } });
+    }
+  });
 });

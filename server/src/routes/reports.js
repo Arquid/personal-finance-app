@@ -252,6 +252,71 @@ router.get("/unusual-spending", async (req, res, next) => {
   }
 });
 
+router.get("/cash-flow-forecast", async (req, res, next) => {
+  try {
+    const FORECAST_DAYS = 30;
+    const DISCRETIONARY_LOOKBACK_DAYS = 90;
+    const INCOME_LOOKBACK_MONTHS = 3;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const discretionaryLookbackStart = new Date(today);
+    discretionaryLookbackStart.setDate(discretionaryLookbackStart.getDate() - DISCRETIONARY_LOOKBACK_DAYS);
+    const incomeLookbackStart = new Date(today.getFullYear(), today.getMonth() - INCOME_LOOKBACK_MONTHS, 1);
+
+    const [accounts, activeBills, discretionaryAgg, incomeAgg, lastIncomeTx] = await Promise.all([
+      prisma.account.findMany(),
+      prisma.recurringBill.findMany({ where: { isActive: true } }),
+      prisma.transaction.aggregate({
+        _sum: { amount: true },
+        where: { amount: { lt: 0 }, isRecurring: false, date: { gte: discretionaryLookbackStart } },
+      }),
+      prisma.transaction.aggregate({
+        _sum: { amount: true },
+        where: { amount: { gt: 0 }, date: { gte: incomeLookbackStart } },
+      }),
+      prisma.transaction.findFirst({
+        where: { amount: { gt: 0 } },
+        orderBy: { date: "desc" },
+      }),
+    ]);
+
+    const currentTotal = accounts.reduce((sum, a) => sum + Number(a.balance), 0);
+    // Smoothed daily drag from everyday (non-recurring) spending, spread evenly
+    // across the forecast rather than dumped on a single day.
+    const avgDailyDiscretionary =
+      Math.abs(Number(discretionaryAgg._sum.amount || 0)) / DISCRETIONARY_LOOKBACK_DAYS;
+    // Simple average rather than full pattern detection (unlike RecurringBill) —
+    // there's no "recurring income" concept yet, so this just assumes income
+    // repeats on the same day of month as the most recent income transaction.
+    const avgMonthlyIncome = Number(incomeAgg._sum.amount || 0) / INCOME_LOOKBACK_MONTHS;
+    const expectedIncomeDay = lastIncomeTx ? new Date(lastIncomeTx.date).getDate() : null;
+
+    let running = currentTotal;
+    const forecast = [];
+    for (let i = 1; i <= FORECAST_DAYS; i++) {
+      const date = new Date(today);
+      date.setDate(date.getDate() + i);
+      const dayOfMonth = date.getDate();
+
+      let delta = -avgDailyDiscretionary;
+      for (const bill of activeBills) {
+        if (bill.dueDay === dayOfMonth) delta -= Number(bill.amount);
+      }
+      if (expectedIncomeDay !== null && dayOfMonth === expectedIncomeDay) {
+        delta += avgMonthlyIncome;
+      }
+
+      running += delta;
+      forecast.push({ date, projectedBalance: Math.round(running * 100) / 100 });
+    }
+
+    res.json(forecast);
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.get("/net-worth-history", async (req, res, next) => {
   try {
     const snapshots = await prisma.balanceSnapshot.findMany({

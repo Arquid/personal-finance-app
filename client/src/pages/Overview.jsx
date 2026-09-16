@@ -21,7 +21,8 @@ import {
   getBudgetVsActual,
   getMonthlyTrend,
   getUnusualSpending,
-  getNetWorthHistory
+  getNetWorthHistory,
+  getCashFlowForecast,
 } from "../api/client";
 import useCurrency from "../hooks/useCurrency";
 import "../stylesheets/Overview.css";
@@ -59,6 +60,10 @@ function Overview() {
   const { data: netWorthHistory } = useQuery({
     queryKey: ["net-worth-history"],
     queryFn: getNetWorthHistory,
+  });
+  const { data: cashFlowForecast } = useQuery({
+    queryKey: ["cash-flow-forecast"],
+    queryFn: getCashFlowForecast,
   });
 
   if (isLoading) return <p>Loading...</p>;
@@ -162,6 +167,33 @@ function Overview() {
                   name="Net Worth"
                   stroke="#00b894"
                   strokeWidth={2}
+                  dot={false}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          ) : (
+            <p>Not enough data yet.</p>
+          )}
+        </section>
+      </div>
+
+      <div className="overview-grid">
+        <section className="panel panel-wide">
+          <h3>Cash Flow Forecast</h3>
+          {cashFlowForecast && cashFlowForecast.length > 0 ? (
+            <ResponsiveContainer width="100%" height={280}>
+              <LineChart data={cashFlowForecast} margin={{ left: 10 }}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" tickFormatter={formatDateLabel} interval="preserveStartEnd" />
+                <YAxis domain={["auto", "auto"]} tickFormatter={(v) => formatCurrency(v)} width={90} />
+                <Tooltip labelFormatter={formatDateLabel} formatter={(value) => formatCurrency(value)} />
+                <Line
+                  type="monotone"
+                  dataKey="projectedBalance"
+                  name="Projected Balance"
+                  stroke="#0984e3"
+                  strokeWidth={2}
+                  strokeDasharray="6 4"
                   dot={false}
                 />
               </LineChart>

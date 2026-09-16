@@ -64,6 +64,7 @@ export const getLatestByCategory = () =>
 export const getMonthlyTrend = () => api.get("/reports/monthly-trend").then((r) => r.data);
 export const getUnusualSpending = () => api.get("/reports/unusual-spending").then((r) => r.data);
 export const getNetWorthHistory = () => api.get("/reports/net-worth-history").then((r) => r.data);
+export const getCashFlowForecast = () => api.get("/reports/cash-flow-forecast").then((r) => r.data);
 
 //categories
 export const getCategories = () => api.get("/categories").then((r) => r.data);
