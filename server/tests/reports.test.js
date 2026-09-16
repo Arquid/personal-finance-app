@@ -375,4 +375,28 @@ describe("Reports API", () => {
       await prisma.account.delete({ where: { id: account.id } }); // cascades the transaction
     }
   });
+
+  it("includes an overdue, unpaid bill as an immediate deduction on day one", async () => {
+    const today = new Date();
+    const overdueDay = today.getDate() > 1 ? today.getDate() - 1 : 1;
+
+    const bill = await prisma.recurringBill.create({
+      data: { name: `Overdue Bill ${Date.now()}`, amount: 500, dueDay: overdueDay, isActive: true },
+    });
+
+    try {
+      const accountsRes = await request(app).get("/api/accounts");
+      const currentTotal = accountsRes.body.reduce((sum, a) => sum + Number(a.balance), 0);
+
+      const res = await request(app).get("/api/reports/cash-flow-forecast");
+      expect(res.status).toBe(200);
+
+      const dropOnDayOne = currentTotal - res.body[0].projectedBalance;
+      // At least the full overdue amount, plus whatever smoothed discretionary
+      // drag also applies — proves it isn't silently skipped until next month.
+      expect(dropOnDayOne).toBeGreaterThanOrEqual(500);
+    } finally {
+      await prisma.recurringBill.delete({ where: { id: bill.id } });
+    }
+  });
 });
