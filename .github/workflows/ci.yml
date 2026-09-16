@@ -23,7 +23,7 @@ jobs:
 
       - run: npm ci
       - run: npm run lint
-      - run: npm test
+      - run: npm run test:coverage
       - run: npm run build
 
   server:
@@ -61,7 +61,10 @@ jobs:
           echo "DATABASE_URL=postgresql://finance_user:finance_pass@localhost:5432/finance_test_db" >> .env.test
           echo "PORT=4000" >> .env.test
 
-      - run: npm test
+      - name: Migrate test database
+        run: npx dotenv -e .env.test -- npx prisma migrate deploy
+
+      - run: npm run test:coverage
 
   e2e:
     runs-on: ubuntu-latest

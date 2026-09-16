@@ -219,8 +219,8 @@ This starts the backend against `finance_test_db` (same database the backend int
 
 Every push and pull request to `master` runs [`.github/workflows/ci.yml`](.github/workflows/ci.yml), with three jobs in parallel:
 
-- **client** — `npm run lint` (ESLint), `npm test` (Vitest + Testing Library), and `npm run build` (catches production-build-only failures, e.g. a bad dynamic import path, that lint and tests wouldn't)
-- **server** — `npm test` against a disposable PostgreSQL 16 service container (migrations applied automatically via the `pretest` script, same as local dev)
+- **client** — `npm run lint` (ESLint), `npm run test:coverage` (Vitest + Testing Library, with a coverage report), and `npm run build` (catches production-build-only failures, e.g. a bad dynamic import path, that lint and tests wouldn't)
+- **server** — migrates a disposable PostgreSQL 16 service container, then `npm run test:coverage`
 - **e2e** — installs server, client, and e2e dependencies plus the Playwright Chromium browser, migrates its own disposable PostgreSQL 16 service container, then runs the Playwright suite against the real backend and Vite dev server (Playwright's `webServer` config starts both automatically)
 
 All three jobs must pass before a PR is mergeable. No local setup is required to benefit from this — it runs entirely on GitHub's infrastructure.
@@ -235,6 +235,7 @@ All three jobs must pass before a PR is mergeable. No local setup is required to
 | `npm start` | Start the API without nodemon |
 | `npm test` | Migrate the test DB, then run all unit + integration tests once |
 | `npm run test:watch` | Run tests in watch mode against the test DB |
+| `npm run test:coverage` | Run tests once with a code coverage report (needs the test DB already migrated — run `npm test` first, or migrate manually) |
 | `npx prisma migrate dev` | Apply schema migrations |
 | `npx prisma db seed` | Re-seed sample data (clears existing data first) |
 | `npx prisma studio` | Browse the database in a GUI |
@@ -249,6 +250,7 @@ All three jobs must pass before a PR is mergeable. No local setup is required to
 | `npm run lint` | Run ESLint |
 | `npm test` | Run all component/hook tests once |
 | `npm run test:watch` | Run tests in watch mode |
+| `npm run test:coverage` | Run tests once with a code coverage report |
 
 ## API Overview
 
