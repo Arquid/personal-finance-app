@@ -306,14 +306,16 @@ router.get("/cash-flow-forecast", async (req, res, next) => {
     const avgMonthlyIncome = Number(incomeAgg._sum.amount || 0) / INCOME_LOOKBACK_MONTHS;
     const expectedIncomeDay = lastIncomeTx ? new Date(lastIncomeTx.date).getDate() : null;
 
-    // A bill whose due date already passed this month and hasn't been paid is
+    // A bill due today or earlier this month that hasn't been paid yet is
     // still money that's about to leave the account — without this, the loop
-    // below (which only looks forward) would skip it entirely until next
-    // month's occurrence, understating near-term outflow.
-    const overdueUnpaidTotal = activeBills.reduce((sum, bill) => {
+    // below (which only looks forward starting tomorrow) would skip it
+    // entirely until next month's occurrence, understating near-term outflow.
+    // <=, not <: a bill due exactly today is "due" rather than "overdue" per
+    // computeBillStatus, but it's just as unpaid and just as imminent.
+    const duePastOrTodayUnpaidTotal = activeBills.reduce((sum, bill) => {
       const alreadyPaid = bill.merchant && paidMerchants.has(bill.merchant.toLowerCase());
-      const isOverdue = bill.dueDay < today.getDate();
-      return isOverdue && !alreadyPaid ? sum + Number(bill.amount) : sum;
+      const isDueOrOverdue = bill.dueDay <= today.getDate();
+      return isDueOrOverdue && !alreadyPaid ? sum + Number(bill.amount) : sum;
     }, 0);
 
     let running = currentTotal;
@@ -326,7 +328,7 @@ router.get("/cash-flow-forecast", async (req, res, next) => {
       const isCurrentCycle = date.getFullYear() === today.getFullYear() && date.getMonth() === today.getMonth();
 
       let delta = -avgDailyDiscretionary;
-      if (i === 1) delta -= overdueUnpaidTotal;
+      if (i === 1) delta -= duePastOrTodayUnpaidTotal;
       for (const bill of activeBills) {
         if (bill.dueDay !== dayOfMonth) continue;
         const alreadyPaidThisCycle =
