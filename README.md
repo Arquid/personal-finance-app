@@ -71,7 +71,7 @@ personal-finance-app/
 │       ├── routes/          One file per resource (accounts, transactions, budgets, pots, recurringBills, reports, categories)
 │       ├── schemas/         Zod validation schemas (each has a *.test.js next to it)
 │       ├── middleware/      validate.js, errorHandler.js
-│       └── utils/           budgetAlert.js, recurringBillStatus.js (each has a *.test.js next to it)
+│       └── utils/           budgetAlert.js, recurringBillStatus.js, dueDay.js (each has a *.test.js next to it)
 └── client/                  React app
     └── src/
         ├── test/setup.js    Vitest + Testing Library setup (jest-dom matchers, matchMedia polyfill, cleanup)
@@ -176,7 +176,7 @@ npm test
 
 `npm test` automatically migrates the test database first (`pretest` script), then runs:
 
-- **Unit tests** — Zod schemas, `recurringBillStatus.js` (no DB needed)
+- **Unit tests** — Zod schemas, `recurringBillStatus.js`, `dueDay.js` (a `dueDay: 31` bill correctly caps to the last day of shorter months, leap years included) (no DB needed)
 - **Integration tests** (Supertest against the real Express app) for every resource: accounts, transactions, budgets, pots, recurring bills, categories, reports
 - A concurrency test that fires 10 simultaneous pot withdrawals to verify the balance can never go negative
 - Tests for the reporting endpoints' raw SQL — `GROUP BY` aggregation, the unusual-spending CTE, and the `ROW_NUMBER() OVER (PARTITION BY ...)` window function

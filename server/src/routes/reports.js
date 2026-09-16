@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const prisma = require("../prismaClient");
 const { getCurrentMonthRange } = require("../utils/recurringBillStatus");
+const { effectiveDueDay } = require("../utils/dueDay");
 
 function monthRange(date = new Date()) {
   const start = new Date(date.getFullYear(), date.getMonth(), 1);
@@ -314,7 +315,8 @@ router.get("/cash-flow-forecast", async (req, res, next) => {
     // computeBillStatus, but it's just as unpaid and just as imminent.
     const duePastOrTodayUnpaidTotal = activeBills.reduce((sum, bill) => {
       const alreadyPaid = bill.merchant && paidMerchants.has(bill.merchant.toLowerCase());
-      const isDueOrOverdue = bill.dueDay <= today.getDate();
+      const isDueOrOverdue =
+        effectiveDueDay(bill, today.getFullYear(), today.getMonth()) <= today.getDate();
       return isDueOrOverdue && !alreadyPaid ? sum + Number(bill.amount) : sum;
     }, 0);
 
@@ -330,7 +332,7 @@ router.get("/cash-flow-forecast", async (req, res, next) => {
       let delta = -avgDailyDiscretionary;
       if (i === 1) delta -= duePastOrTodayUnpaidTotal;
       for (const bill of activeBills) {
-        if (bill.dueDay !== dayOfMonth) continue;
+        if (effectiveDueDay(bill, date.getFullYear(), date.getMonth()) !== dayOfMonth) continue;
         const alreadyPaidThisCycle =
           isCurrentCycle && bill.merchant && paidMerchants.has(bill.merchant.toLowerCase());
         if (!alreadyPaidThisCycle) delta -= Number(bill.amount);
