@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from "vitest";
+import { describe, it, expect, afterEach, vi } from "vitest";
 import request from "supertest";
 
 const app = require("../src/app");
@@ -289,7 +289,17 @@ describe("Reports API", () => {
     expect(res.body[idx2].totalBalance).toBe(1050);
   });
 
+  // "Today" is fixed for every cash flow forecast test below — June 10, 2026,
+  // a date safely in the middle of a 30-day month — so day offsets (-1 to +20)
+  // never wrap into a neighboring month and land on an ambiguous day-of-month.
+  // That ambiguity is real: a +3-day offset run for real near month-end once
+  // wrapped into a low day-of-month that the "already paid" bucket then read
+  // as an overdue bill from *this* month, silently breaking the test.
+
   it("returns a 30-day cash flow forecast that drops by an active bill's amount on its due date", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(2026, 5, 10));
+
     const today = new Date();
     const targetDate = new Date(today);
     targetDate.setDate(targetDate.getDate() + 15);
@@ -311,11 +321,15 @@ describe("Reports API", () => {
       const dropAtTarget = res.body[13].projectedBalance - res.body[14].projectedBalance;
       expect(dropAtTarget).toBeCloseTo(500, 2);
     } finally {
+      vi.useRealTimers();
       await prisma.recurringBill.delete({ where: { id: bill.id } });
     }
   });
 
   it("adds the average of the last 3 months' income around the day it typically arrives", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(2026, 5, 10));
+
     const today = new Date();
     const targetDate = new Date(today);
     targetDate.setDate(targetDate.getDate() + 20);
@@ -340,12 +354,16 @@ describe("Reports API", () => {
       const bumpAtTarget = res.body[19].projectedBalance - res.body[18].projectedBalance;
       expect(bumpAtTarget).toBeCloseTo(100, 2); // 300 / 3 months
     } finally {
+      vi.useRealTimers();
       await prisma.transaction.delete({ where: { id: tx.id } });
       await prisma.account.delete({ where: { id: account.id } });
     }
   });
 
   it("excludes a bill's amount from the forecast once it's already been paid this cycle", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(2026, 5, 10));
+
     const today = new Date();
     const targetDate = new Date(today);
     targetDate.setDate(targetDate.getDate() + 3);
@@ -371,14 +389,18 @@ describe("Reports API", () => {
       // full $500 — otherwise the already-paid bill would be double-counted.
       expect(Math.abs(dropAtTarget)).toBeLessThan(50);
     } finally {
+      vi.useRealTimers();
       await prisma.recurringBill.delete({ where: { id: bill.id } });
       await prisma.account.delete({ where: { id: account.id } }); // cascades the transaction
     }
   });
 
   it("includes an overdue, unpaid bill as an immediate deduction on day one", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(2026, 5, 10));
+
     const today = new Date();
-    const overdueDay = today.getDate() > 1 ? today.getDate() - 1 : 1;
+    const overdueDay = today.getDate() - 1;
 
     const bill = await prisma.recurringBill.create({
       data: { name: `Overdue Bill ${Date.now()}`, amount: 500, dueDay: overdueDay, isActive: true },
@@ -396,11 +418,15 @@ describe("Reports API", () => {
       // drag also applies — proves it isn't silently skipped until next month.
       expect(dropOnDayOne).toBeGreaterThanOrEqual(500);
     } finally {
+      vi.useRealTimers();
       await prisma.recurringBill.delete({ where: { id: bill.id } });
     }
   });
 
   it("includes a bill due exactly today, unpaid, as an immediate deduction on day one", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(2026, 5, 10));
+
     const today = new Date();
 
     const bill = await prisma.recurringBill.create({
@@ -419,6 +445,7 @@ describe("Reports API", () => {
       // as unpaid and just as imminent — must not be skipped until next month.
       expect(dropOnDayOne).toBeGreaterThanOrEqual(500);
     } finally {
+      vi.useRealTimers();
       await prisma.recurringBill.delete({ where: { id: bill.id } });
     }
   });
