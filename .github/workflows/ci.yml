@@ -22,6 +22,11 @@ jobs:
           cache-dependency-path: client/package-lock.json
 
       - run: npm ci
+
+      - name: Audit production dependencies
+        run: npm audit --omit=dev
+        continue-on-error: true
+
       - run: npm run lint
       - run: npm run test:coverage
       - run: npm run build
@@ -55,6 +60,10 @@ jobs:
           cache-dependency-path: server/package-lock.json
 
       - run: npm ci
+
+      - name: Audit production dependencies
+        run: npm audit --omit=dev
+        continue-on-error: true
 
       - name: Create .env.test
         run: |
