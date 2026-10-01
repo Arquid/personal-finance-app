@@ -29,6 +29,11 @@ describe("accountCreateSchema", () => {
     const result = accountCreateSchema.safeParse({ name: "Test", type: "savings" });
     expect(result.success).toBe(true);
   });
+
+  it("rejects a balance with more than 2 decimal places", () => {
+    const result = accountCreateSchema.safeParse({ name: "Test", type: "savings", balance: 10.005 });
+    expect(result.success).toBe(false);
+  });
 });
 
 describe("accountUpdateSchema", () => {

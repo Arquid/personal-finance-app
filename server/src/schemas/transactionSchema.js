@@ -1,7 +1,8 @@
 const z = require("zod");
+const { money } = require("./money");
 
 const transactionCreateSchema = z.object({
-  amount: z.coerce.number().refine((v) => v !== 0, "Amount cannot be zero"),
+  amount: money().refine((v) => v !== 0, "Amount cannot be zero"),
   description: z.string().min(1, "Description is required").max(255),
   merchant: z.string().max(255).optional().nullable(),
   date: z.coerce.date({ error: "A valid date is required" }),

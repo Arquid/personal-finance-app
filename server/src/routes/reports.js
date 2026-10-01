@@ -3,6 +3,7 @@ const router = express.Router();
 const prisma = require("../prismaClient");
 const { getCurrentMonthRange } = require("../utils/recurringBillStatus");
 const { effectiveDueDay } = require("../utils/dueDay");
+const { sumDiscretionarySpending } = require("../utils/discretionarySpending");
 
 function monthRange(date = new Date()) {
   const start = new Date(date.getFullYear(), date.getMonth(), 1);
@@ -268,13 +269,13 @@ router.get("/cash-flow-forecast", async (req, res, next) => {
 
     const { start: currentMonthStart, end: currentMonthEnd } = getCurrentMonthRange();
 
-    const [accounts, activeBills, discretionaryAgg, incomeAgg, lastIncomeTx, paidThisMonth] =
+    const [accounts, bills, recentExpenses, incomeAgg, lastIncomeTx, paidThisMonth] =
       await Promise.all([
         prisma.account.findMany(),
-        prisma.recurringBill.findMany({ where: { isActive: true } }),
-        prisma.transaction.aggregate({
-          _sum: { amount: true },
-          where: { amount: { lt: 0 }, isRecurring: false, date: { gte: discretionaryLookbackStart } },
+        prisma.recurringBill.findMany(),
+        prisma.transaction.findMany({
+          where: { amount: { lt: 0 }, date: { gte: discretionaryLookbackStart } },
+          select: { amount: true, merchant: true, isRecurring: true },
         }),
         prisma.transaction.aggregate({
           _sum: { amount: true },
@@ -296,11 +297,14 @@ router.get("/cash-flow-forecast", async (req, res, next) => {
     // again as a projected deduction on its still-upcoming nominal due date.
     const paidMerchants = new Set(paidThisMonth.map((t) => t.merchant.toLowerCase()));
 
+    const activeBills = bills.filter((b) => b.isActive);
+
     const currentTotal = accounts.reduce((sum, a) => sum + Number(a.balance), 0);
-    // Smoothed daily drag from everyday (non-recurring) spending, spread evenly
-    // across the forecast rather than dumped on a single day.
+    // Smoothed daily drag from everyday spending, spread evenly across the
+    // forecast rather than dumped on a single day. Payments to recurring bills
+    // are left out here because each bill is projected on its own due day.
     const avgDailyDiscretionary =
-      Math.abs(Number(discretionaryAgg._sum.amount || 0)) / DISCRETIONARY_LOOKBACK_DAYS;
+      sumDiscretionarySpending(recentExpenses, bills) / DISCRETIONARY_LOOKBACK_DAYS;
     // Simple average rather than full pattern detection (unlike RecurringBill) —
     // there's no "recurring income" concept yet, so this just assumes income
     // repeats on the same day of month as the most recent income transaction.

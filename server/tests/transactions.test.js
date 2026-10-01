@@ -139,4 +139,44 @@ describe("Transactions API", () => {
     const res = await request(app).get("/api/transactions/suggest-category");
     expect(res.status).toBe(400);
   });
+
+  it("rejects an amount with more than 2 decimal places", async () => {
+    const res = await request(app).post("/api/transactions").send({
+      amount: -5.555,
+      description: "Sub-cent amount",
+      date: "2026-01-01",
+      accountId,
+    });
+    expect(res.status).toBe(400);
+    expect(JSON.stringify(res.body)).toMatch(/2 decimal places/);
+  });
+
+  it("rejects an amount too large for the database column instead of failing with a 500", async () => {
+    const res = await request(app).post("/api/transactions").send({
+      amount: 1e15,
+      description: "Overflow amount",
+      date: "2026-01-01",
+      accountId,
+    });
+    expect(res.status).toBe(400);
+  });
+
+  it("imports valid CSV rows and reports rows with sub-cent amounts as errors", async () => {
+    const csv = [
+      "date,description,merchant,amount,category",
+      "2026-01-02,Import ok,Shop,-3.50,",
+      "2026-01-03,Import sub-cent,Shop,-3.555,",
+    ].join("\n");
+
+    const res = await request(app)
+      .post("/api/transactions/import")
+      .field("accountId", String(accountId))
+      .attach("file", Buffer.from(csv), "rows.csv");
+
+    expect(res.status).toBe(201);
+    expect(res.body.imported).toBe(1);
+    expect(res.body.skipped).toBe(1);
+    expect(res.body.errors[0].row).toBe(3);
+    expect(res.body.errors[0].error).toMatch(/2 decimal places/);
+  });
 });

@@ -52,6 +52,12 @@ describe("Accounts API", () => {
     expect(Number(res.body.balance)).toBe(1200);
   });
 
+  it("answers a non-numeric id with a 400 that doesn't leak server internals", async () => {
+    const res = await request(app).get("/api/accounts/abc");
+    expect(res.status).toBe(400);
+    expect(JSON.stringify(res.body)).not.toMatch(/prisma|C:\\|\.js:\d+/i);
+  });
+
   it("returns 404 for an account that no longer exists", async () => {
     const createRes = await request(app)
       .post("/api/accounts")
@@ -111,6 +117,39 @@ describe("Accounts API", () => {
     const res = await request(app)
       .post("/api/accounts/transfer")
       .send({ fromAccountId: fromId, toAccountId: fromId, amount: 10 });
+    expect(res.status).toBe(400);
+  });
+
+  it("rejects a sub-cent transfer so repeated transfers can't create money", async () => {
+    const from = await prisma.account.create({
+      data: { name: `Transfer From ${Date.now()}`, type: "checking", balance: 500 },
+    });
+    fromId = from.id;
+    const to = await prisma.account.create({
+      data: { name: `Transfer To ${Date.now()}`, type: "savings", balance: 100 },
+    });
+    toId = to.id;
+
+    // Before the fix, 0.005 left the source unchanged but rounded the
+    // destination up by a cent, so every transfer minted 0.01.
+    for (let i = 0; i < 5; i++) {
+      const res = await request(app)
+        .post("/api/accounts/transfer")
+        .send({ fromAccountId: fromId, toAccountId: toId, amount: 0.005 });
+      expect(res.status).toBe(400);
+    }
+
+    const [source, destination] = await Promise.all([
+      prisma.account.findUnique({ where: { id: fromId } }),
+      prisma.account.findUnique({ where: { id: toId } }),
+    ]);
+    expect(Number(source.balance) + Number(destination.balance)).toBe(600);
+  });
+
+  it("rejects an account balance too large for the database column", async () => {
+    const res = await request(app)
+      .post("/api/accounts")
+      .send({ name: `Huge ${Date.now()}`, type: "checking", balance: 1e20 });
     expect(res.status).toBe(400);
   });
 

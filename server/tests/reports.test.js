@@ -449,4 +449,57 @@ describe("Reports API", () => {
       await prisma.recurringBill.delete({ where: { id: bill.id } });
     }
   });
+
+  // Payments for a recurring bill are entered as ordinary transactions (the UI,
+  // "Mark as Paid" and CSV import never set isRecurring), so the forecast has to
+  // recognise them by merchant, or each bill is charged twice: once through the
+  // everyday-spending average and once on its due day.
+  async function lastProjectedBalance() {
+    const res = await request(app).get("/api/reports/cash-flow-forecast");
+    expect(res.status).toBe(200);
+    return res.body[res.body.length - 1].projectedBalance;
+  }
+
+  async function forecastChangeFromPastExpense(expenseMerchant) {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(2026, 5, 10));
+
+    const billMerchant = `Forecast Landlord ${Date.now()}`;
+    const bill = await prisma.recurringBill.create({
+      data: { name: billMerchant, merchant: billMerchant, amount: 900, dueDay: 20, isActive: true },
+    });
+    const account = await prisma.account.create({
+      data: { name: `Forecast Double Count Account ${Date.now()}`, type: "checking", balance: 0 },
+    });
+
+    try {
+      const before = await lastProjectedBalance();
+      // Last month, so it doesn't change the bill's "paid this cycle" status.
+      await prisma.transaction.create({
+        data: {
+          amount: -900,
+          description: "Past payment",
+          merchant: expenseMerchant === "bill" ? billMerchant : expenseMerchant,
+          date: new Date(2026, 4, 20),
+          accountId: account.id,
+        },
+      });
+      const after = await lastProjectedBalance();
+      return before - after;
+    } finally {
+      vi.useRealTimers();
+      await prisma.recurringBill.delete({ where: { id: bill.id } });
+      await prisma.account.delete({ where: { id: account.id } }); // cascades the transaction
+    }
+  }
+
+  it("does not count a recurring bill's past payments again as everyday spending", async () => {
+    const extraDrop = await forecastChangeFromPastExpense("bill");
+    expect(extraDrop).toBeCloseTo(0, 2);
+  });
+
+  it("still counts past spending at merchants that aren't recurring bills", async () => {
+    const extraDrop = await forecastChangeFromPastExpense("Unrelated Corner Shop");
+    expect(extraDrop).toBeCloseTo((900 / 90) * 30, 2); // 900 spread over 90 days, 30 forecast days
+  });
 });

@@ -10,6 +10,7 @@ const {
   transactionUpdateSchema,
 } = require("../schemas/transactionSchema");
 const { getBudgetAlert } = require("../utils/budgetAlert");
+const { isValidMoney } = require("../schemas/money");
 
 const SORTABLE_FIELDS = ["date", "amount", "description", "merchant"];
 
@@ -249,6 +250,10 @@ router.post("/import", upload.single("file"), async (req, res, next) => {
       }
       if (isNaN(amount) || amount === 0) {
         errors.push({ row: rowNum, error: "Amount must be a non-zero number" });
+        return;
+      }
+      if (!isValidMoney(amount)) {
+        errors.push({ row: rowNum, error: "Amount can have at most 2 decimal places and must be within range" });
         return;
       }
       if (isNaN(date.getTime())) {

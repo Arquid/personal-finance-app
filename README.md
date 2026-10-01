@@ -25,7 +25,7 @@ A full-stack personal finance manager with transaction tracking, budget manageme
   - Spending-by-category donut chart and a budget-vs-actual bar chart
   - Monthly trend chart — income/expenses per month plus a cumulative-expenses line, powered by a `ROW_NUMBER()`-style running-total SQL window function
   - Net worth history chart — daily snapshots of total balance across all accounts, recorded automatically whenever the dashboard loads
-  - Cash flow forecast chart — projects the next 30 days' balance from active recurring bills not yet paid this cycle (applied on their due day, or immediately if already due or overdue), the average of the last 3 months' income (applied on the day it typically arrives), and a smoothed daily average of everyday non-recurring spending
+  - Cash flow forecast chart — projects the next 30 days' balance from active recurring bills not yet paid this cycle (applied on their due day, or immediately if already due or overdue), the average of the last 3 months' income (applied on the day it typically arrives), and a smoothed daily average of everyday spending (payments to a recurring bill's merchant are left out of that average, since each bill is projected on its own due day)
   - Unusual-spending alerts — flags categories running far above their historical monthly average, via a CTE-based query
 - **Transactions**
   - Paginated (10/page), searchable, sortable, filterable by category; full CRUD
@@ -43,7 +43,7 @@ A full-stack personal finance manager with transaction tracking, budget manageme
 - **Currency switcher** (USD/EUR/GBP) — applied app-wide and persisted to localStorage
 - **Dark mode** — follows the OS's `prefers-color-scheme` by default, with a manual toggle that overrides it and persists
 - **Accessibility** — keyboard navigation (sortable table headers with `aria-sort`, arrow-key pagination, modals close on Escape and trap focus), accessible confirmation dialogs for all delete actions (no native `window.confirm`)
-- **Validation** — Zod schemas enforced on both client and server
+- **Validation** — Zod schemas enforced on both client and server; on the server every money amount must be a whole number of cents within the range of its `Decimal(12,2)` column
 
 ## Tech Stack
 
@@ -176,13 +176,14 @@ npm test
 
 `npm test` automatically migrates the test database first (`pretest` script), then runs:
 
-- **Unit tests** — Zod schemas, `recurringBillStatus.js`, `dueDay.js` (a `dueDay: 31` bill correctly caps to the last day of shorter months, leap years included) (no DB needed)
+- **Unit tests** — Zod schemas (including the shared money rule: at most 2 decimals, no float false rejections across every cent, column-size limit), `recurringBillStatus.js`, `dueDay.js` (a `dueDay: 31` bill correctly caps to the last day of shorter months, leap years included), `discretionarySpending.js`, and the error handler (no internals leaked in 5xx responses) (no DB needed)
 - **Integration tests** (Supertest against the real Express app) for every resource: accounts, transactions, budgets, pots, recurring bills, categories, reports
 - A concurrency test that fires 10 simultaneous pot withdrawals to verify the balance can never go negative
 - Tests for the reporting endpoints' raw SQL — `GROUP BY` aggregation, the unusual-spending CTE, and the `ROW_NUMBER() OVER (PARTITION BY ...)` window function
 - Tests for account transfers (atomic, rollback-safe), CSV export (filtering + correct quoting of fields containing commas), and merchant-based category suggestions
 - A test that the daily net worth snapshot is recorded (and upserted, not duplicated) when the overview loads, plus ordering for the net worth history endpoint
-- Tests for the cash flow forecast — that an active recurring bill's amount is subtracted exactly on its due date, that the last 3 months' average income is added on the day it's expected to recur, that a bill already paid this cycle is excluded so it isn't double-counted, and that a bill due today or already overdue (and still unpaid) is deducted immediately rather than silently skipped until next month
+- Tests that sub-cent amounts are rejected everywhere they could enter (transfers, transactions, CSV import) — a regression test for a bug where 0.005 transfers silently created money — and that a non-numeric id gets a 400 instead of a 500 with server internals
+- Tests for the cash flow forecast — that an active recurring bill's amount is subtracted exactly on its due date, that the last 3 months' average income is added on the day it's expected to recur, that a bill already paid this cycle is excluded so it isn't double-counted, that a bill due today or already overdue (and still unpaid) is deducted immediately rather than silently skipped until next month, and that payments to a recurring bill's merchant aren't counted a second time as everyday spending
 
 Test files run sequentially rather than in parallel (`fileParallelism: false` in `vitest.config.js`) since they all share one real database — this trades a bit of speed for full determinism, since a test that reads across an entire table would otherwise race against other files' concurrent writes.
 
@@ -223,7 +224,7 @@ Every push and pull request to `master` runs [`.github/workflows/ci.yml`](.githu
 - **server** — `npm audit --omit=dev`, migrates a disposable PostgreSQL 16 service container, then `npm run test:coverage`
 - **e2e** — installs server, client, and e2e dependencies plus the Playwright Chromium browser, migrates its own disposable PostgreSQL 16 service container, then runs the Playwright suite against the real backend and Vite dev server (Playwright's `webServer` config starts both automatically)
 
-All three jobs must pass before a PR is mergeable. No local setup is required to benefit from this — it runs entirely on GitHub's infrastructure.
+Dependabot (`.github/dependabot.yml`) opens weekly pull requests for npm and GitHub Actions updates in all three packages, ignoring Prisma major versions (see Notes). All three jobs must pass before a PR is mergeable. No local setup is required to benefit from this — it runs entirely on GitHub's infrastructure.
 
 ## Scripts
 
@@ -272,6 +273,8 @@ A few endpoints worth calling out:
 - `GET /transactions/export` accepts the same filters (no pagination) and returns a CSV file.
 - `GET /transactions/suggest-category` takes a `merchant` query parameter and returns that merchant's most-used category, or `null` if there's no history for it.
 - `POST /accounts/transfer` takes `fromAccountId`, `toAccountId`, and `amount`, and atomically moves the balance between the two accounts (rolled back entirely if either side fails).
+- Money amounts (here and everywhere else they are accepted) must have at most 2 decimal places and fit a `Decimal(12,2)` column, otherwise the request is rejected with a 400.
+- Error responses are JSON. Messages for 4xx errors are meant for the client; any 5xx response says only `Internal server error`, and the details go to the server log.
 - `GET /reports/overview` has a side effect: it upserts today's total balance into `BalanceSnapshot`, which is what `GET /reports/net-worth-history` reads back. See the note below on why this isn't derived from transactions instead.
 
 ## Notes

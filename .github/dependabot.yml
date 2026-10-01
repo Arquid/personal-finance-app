@@ -1,0 +1,29 @@
+version: 2
+
+updates:
+  - package-ecosystem: npm
+    directory: /client
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: npm
+    directory: /server
+    schedule:
+      interval: weekly
+    ignore:
+      # Prisma is deliberately pinned to 6.x: v7+ is TypeScript/ESM-only, which
+      # doesn't fit this CommonJS stack (see "Notes" in the README).
+      - dependency-name: prisma
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@prisma/client"
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: npm
+    directory: /e2e
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
