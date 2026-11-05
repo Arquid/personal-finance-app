@@ -4,7 +4,7 @@ import { z } from "zod";
 import useModal from "../../hooks/useModal";
 
 const schema = z.object({
-  name: z.string().min(1, "Name is required").max(100),
+  name: z.string().trim().min(1, "Name is required").max(100),
   targetAmount: z.coerce.number().positive("Target amount must be greater than 0"),
   color: z.string().min(1, "Color is required"),
 });

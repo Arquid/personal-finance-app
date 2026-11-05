@@ -1,8 +1,9 @@
 const { z } = require("zod");
+const { idField } = require("./ids");
 const { money } = require("./money");
 
 const budgetCreateSchema = z.object({
-  categoryId: z.coerce.number().int().positive("Category is required"),
+  categoryId: idField("Category is required"),
   limitAmount: money().positive("Limit must be greater than 0"),
   period: z.enum(["monthly", "weekly", "yearly"]).optional(),
 });

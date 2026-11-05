@@ -9,7 +9,7 @@ import { createCategory, suggestCategoryForMerchant } from "../../api/client";
 const schema = z.object({
   type: z.enum(["expense", "income"]),
   amount: z.coerce.number().positive("Amount must be greater than 0"),
-  description: z.string().min(1, "Description is required"),
+  description: z.string().trim().min(1, "Description is required"),
   merchant: z.string().optional(),
   date: z.string().min(1, "Date is required"),
   accountId: z.coerce.number().int().positive("Account is required"),
@@ -17,7 +17,7 @@ const schema = z.object({
 });
 
 const categorySchema = z.object({
-  name: z.string().min(1, "Name is required").max(100),
+  name: z.string().trim().min(1, "Name is required").max(100),
   color: z.string().min(1, "Color is required"),
 });
 

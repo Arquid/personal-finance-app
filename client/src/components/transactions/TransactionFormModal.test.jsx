@@ -64,6 +64,19 @@ describe("TransactionFormModal", () => {
     expect(await screen.findByText("Description is required")).toBeInTheDocument();
   });
 
+  it("rejects a description made only of spaces", async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn();
+    renderWithProviders(
+      <TransactionFormModal accounts={accounts} categories={categories} initialData={null} onSubmit={onSubmit} onClose={() => {}} />,
+    );
+    await user.type(screen.getByLabelText("Amount"), "10");
+    await user.type(screen.getByLabelText("Description"), "     ");
+    await user.click(screen.getByText("Add"));
+    expect(await screen.findByText("Description is required")).toBeInTheDocument();
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
   it("signs the amount negative for an expense and positive for income", async () => {
     const user = userEvent.setup();
     const onSubmit = vi.fn();

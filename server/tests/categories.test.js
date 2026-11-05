@@ -28,6 +28,19 @@ describe("Categories API", () => {
     expect(res.status).toBe(400);
   });
 
+  it("rejects a name made only of whitespace", async () => {
+    const res = await request(app).post("/api/categories").send({ name: "     " });
+    expect(res.status).toBe(400);
+  });
+
+  it("stores a name without surrounding whitespace", async () => {
+    const name = `Trimmed Category ${Date.now()}`;
+    const res = await request(app).post("/api/categories").send({ name: `  ${name}  ` });
+    expect(res.status).toBe(201);
+    expect(res.body.name).toBe(name);
+    categoryId = res.body.id;
+  });
+
   it("rejects a duplicate category name with a clean 409", async () => {
     const name = `Duplicate Category ${Date.now()}`;
     const first = await request(app).post("/api/categories").send({ name });

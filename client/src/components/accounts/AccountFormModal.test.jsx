@@ -28,6 +28,25 @@ describe("AccountFormModal", () => {
     expect(await screen.findByText("Name is required")).toBeInTheDocument();
   });
 
+  it("rejects a name made only of spaces", async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn();
+    render(<AccountFormModal initialData={null} onSubmit={onSubmit} onClose={() => {}} />);
+    await user.type(screen.getByLabelText("Name"), "     ");
+    await user.click(screen.getByText("Add"));
+    expect(await screen.findByText("Name is required")).toBeInTheDocument();
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it("trims surrounding spaces from the name it submits", async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn();
+    render(<AccountFormModal initialData={null} onSubmit={onSubmit} onClose={() => {}} />);
+    await user.type(screen.getByLabelText("Name"), "  Padded  ");
+    await user.click(screen.getByText("Add"));
+    expect(onSubmit.mock.calls[0][0].name).toBe("Padded");
+  });
+
   it("submits a brand new account with the default zero balance untouched", async () => {
     const user = userEvent.setup();
     const onSubmit = vi.fn();

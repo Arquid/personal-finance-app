@@ -2,7 +2,10 @@ const express = require("express");
 const router = express.Router();
 const prisma = require("../prismaClient");
 const validate = require("../middleware/validate");
+const validateIdParam = require("../middleware/validateIdParam");
 const { budgetCreateSchema, budgetUpdateSchema } = require("../schemas/budgetSchema");
+
+router.param("id", validateIdParam);
 
 router.get("/", async (req, res, next) => {
   try {

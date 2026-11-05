@@ -140,6 +140,30 @@ describe("Transactions API", () => {
     expect(res.status).toBe(400);
   });
 
+  it("rejects a malformed accountId filter on the list and export endpoints", async () => {
+    for (const value of ["abc", "1.5", "0x1", "0"]) {
+      const list = await request(app).get("/api/transactions").query({ accountId: value });
+      const exported = await request(app).get("/api/transactions/export").query({ accountId: value });
+      expect(list.status).toBe(400);
+      expect(exported.status).toBe(400);
+    }
+  });
+
+  it("rejects repeated query parameters instead of crashing with a 500", async () => {
+    const res = await request(app).get("/api/transactions?search=a&search=b");
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe("Invalid query parameter: search");
+  });
+
+  it("clamps an absurdly large page number instead of failing", async () => {
+    const res = await request(app)
+      .get("/api/transactions")
+      .query({ page: "999999999999999999999", accountId });
+    expect(res.status).toBe(200);
+    expect(res.body.data).toEqual([]);
+    expect(res.body.pagination.page).toBeLessThanOrEqual(1000000);
+  });
+
   it("rejects an amount with more than 2 decimal places", async () => {
     const res = await request(app).post("/api/transactions").send({
       amount: -5.555,
@@ -178,5 +202,49 @@ describe("Transactions API", () => {
     expect(res.body.skipped).toBe(1);
     expect(res.body.errors[0].row).toBe(3);
     expect(res.body.errors[0].error).toMatch(/2 decimal places/);
+  });
+
+  describe("CSV formula injection", () => {
+    const formula = '=HYPERLINK("http://evil.example","click")';
+
+    it("defuses spreadsheet formulas in exported text columns but not in the amount", async () => {
+      const created = await request(app).post("/api/transactions").send({
+        amount: -12.5,
+        description: formula,
+        merchant: "+SUM(1+1)",
+        date: "2026-09-01",
+        accountId,
+      });
+      expect(created.status).toBe(201);
+
+      const res = await request(app)
+        .get("/api/transactions/export")
+        .query({ accountId, search: "HYPERLINK" });
+      expect(res.status).toBe(200);
+
+      const row = res.text.split("\n")[1];
+      expect(row).toBe(`2026-09-01,"'=HYPERLINK(""http://evil.example"",""click"")",'+SUM(1+1),-12.5,`);
+    });
+
+    it("imports a file it exported without leaving the escaping apostrophes behind", async () => {
+      const exported = await request(app)
+        .get("/api/transactions/export")
+        .query({ accountId, search: "HYPERLINK" });
+
+      const imported = await request(app)
+        .post("/api/transactions/import")
+        .field("accountId", String(accountId))
+        .attach("file", Buffer.from(exported.text), "round-trip.csv");
+      expect(imported.status).toBe(201);
+
+      const list = await request(app)
+        .get("/api/transactions")
+        .query({ accountId, search: "HYPERLINK" });
+      expect(list.body.data.length).toBeGreaterThanOrEqual(2);
+      for (const t of list.body.data) {
+        expect(t.description).toBe(formula);
+        expect(t.merchant).toBe("+SUM(1+1)");
+      }
+    });
   });
 });

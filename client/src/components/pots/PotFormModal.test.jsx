@@ -28,6 +28,17 @@ describe("PotFormModal", () => {
     expect(await screen.findByText("Name is required")).toBeInTheDocument();
   });
 
+  it("rejects a name made only of spaces instead of saving a blank pot", async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn();
+    render(<PotFormModal initialData={null} onSubmit={onSubmit} onClose={() => {}} />);
+    await user.type(screen.getByLabelText("Name"), "     ");
+    await user.type(screen.getByLabelText("Target Amount"), "500");
+    await user.click(screen.getByText("Add"));
+    expect(await screen.findByText("Name is required")).toBeInTheDocument();
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
   it("shows a validation error when the target amount is zero or negative", async () => {
     const user = userEvent.setup();
     render(<PotFormModal initialData={null} onSubmit={() => {}} onClose={() => {}} />);

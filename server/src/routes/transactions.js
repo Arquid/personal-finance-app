@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const prisma = require("../prismaClient");
 const validate = require("../middleware/validate");
+const validateIdParam = require("../middleware/validateIdParam");
 const multer = require("multer");
 const { parse } = require("csv-parse/sync");
 
@@ -11,6 +12,9 @@ const {
 } = require("../schemas/transactionSchema");
 const { getBudgetAlert } = require("../utils/budgetAlert");
 const { isValidMoney } = require("../schemas/money");
+const { parseId } = require("../utils/ids");
+const { MAX_PAGE, queryString, queryAccountId } = require("../utils/query");
+const { restoreFormula, transactionsToCsv } = require("../utils/csv");
 
 const SORTABLE_FIELDS = ["date", "amount", "description", "merchant"];
 
@@ -26,28 +30,9 @@ function buildTransactionWhere({ search, category, accountId }) {
           }
         : {},
       category ? { category: { name: category } } : {},
-      accountId ? { accountId: Number(accountId) } : {},
+      accountId ? { accountId } : {},
     ],
   };
-}
-
-function escapeCsvField(value) {
-  const str = String(value ?? "");
-  return /[",\n]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
-}
-
-function transactionsToCsv(transactions) {
-  const header = "date,description,merchant,amount,category";
-  const rows = transactions.map((t) =>
-    [
-      new Date(t.date).toISOString().slice(0, 10),
-      escapeCsvField(t.description),
-      escapeCsvField(t.merchant ?? ""),
-      Number(t.amount),
-      escapeCsvField(t.category?.name ?? ""),
-    ].join(","),
-  );
-  return [header, ...rows].join("\n");
 }
 
 const upload = multer({
@@ -62,14 +47,17 @@ const upload = multer({
   },
 });
 
+router.param("id", validateIdParam);
+
 router.get("/", async (req, res, next) => {
   try {
-    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const page = Math.min(MAX_PAGE, Math.max(1, parseInt(req.query.page, 10) || 1));
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 10));
-    const search = (req.query.search || "").trim();
+    const search = queryString(req, "search");
     const sortBy = SORTABLE_FIELDS.includes(req.query.sortBy) ? req.query.sortBy : "date";
     const order = req.query.order === "asc" ? "asc" : "desc";
-    const { category, accountId } = req.query;
+    const category = queryString(req, "category");
+    const accountId = queryAccountId(req);
 
     const where = buildTransactionWhere({ search, category, accountId });
 
@@ -100,10 +88,11 @@ router.get("/", async (req, res, next) => {
 
 router.get("/export", async (req, res, next) => {
   try {
-    const search = (req.query.search || "").trim();
+    const search = queryString(req, "search");
     const sortBy = SORTABLE_FIELDS.includes(req.query.sortBy) ? req.query.sortBy : "date";
     const order = req.query.order === "asc" ? "asc" : "desc";
-    const { category, accountId } = req.query;
+    const category = queryString(req, "category");
+    const accountId = queryAccountId(req);
     const where = buildTransactionWhere({ search, category, accountId });
 
     const transactions = await prisma.transaction.findMany({
@@ -123,7 +112,7 @@ router.get("/export", async (req, res, next) => {
 
 router.get("/suggest-category", async (req, res, next) => {
   try {
-    const merchant = (req.query.merchant || "").trim();
+    const merchant = queryString(req, "merchant");
     if (!merchant) return res.status(400).json({ error: "merchant is required" });
 
     const grouped = await prisma.transaction.groupBy({
@@ -216,8 +205,8 @@ router.post("/import", upload.single("file"), async (req, res, next) => {
   try {
     if (!req.file) return res.status(400).json({ error: "No file uploaded" });
 
-    const accountId = Number(req.body.accountId);
-    if (!accountId) return res.status(400).json({ error: "accountId is required" });
+    const accountId = parseId(req.body.accountId);
+    if (accountId === null) return res.status(400).json({ error: "accountId is required" });
 
     const account = await prisma.account.findUnique({ where: { id: accountId } });
     if (!account) return res.status(400).json({ error: "Account not found" });
@@ -244,7 +233,8 @@ router.post("/import", upload.single("file"), async (req, res, next) => {
       const amount = parseFloat(row.amount);
       const date = new Date(row.date);
 
-      if (!row.description || !row.description.trim()) {
+      const description = restoreFormula((row.description || "").trim());
+      if (!description) {
         errors.push({ row: rowNum, error: "Description is required" });
         return;
       }
@@ -262,13 +252,13 @@ router.post("/import", upload.single("file"), async (req, res, next) => {
       }
 
       const categoryId = row.category
-        ? (categoryByName.get(row.category.trim().toLowerCase()) ?? null)
+        ? (categoryByName.get(restoreFormula(row.category.trim()).toLowerCase()) ?? null)
         : null;
 
       validRows.push({
         amount,
-        description: row.description.trim(),
-        merchant: row.merchant ? row.merchant.trim() : null,
+        description,
+        merchant: row.merchant ? restoreFormula(row.merchant.trim()) : null,
         date,
         accountId,
         categoryId,

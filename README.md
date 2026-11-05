@@ -29,7 +29,7 @@ A full-stack personal finance manager with transaction tracking, budget manageme
   - Unusual-spending alerts — flags categories running far above their historical monthly average, via a CTE-based query
 - **Transactions**
   - Paginated (10/page), searchable, sortable, filterable by category; full CRUD
-  - CSV import with per-row validation, and CSV export that respects the current search/category filters
+  - CSV import with per-row validation, and CSV export that respects the current search/category filters and defuses spreadsheet formulas (a text cell starting with `=`, `+`, `-` or `@` gets a leading apostrophe; the importer strips it again, so an exported file re-imports unchanged)
   - Merchant-based category suggestions when adding a transaction
 - **Budgets** — CRUD per category, progress bars with over/warning/ok status, latest 3 transactions per budget category, budget-limit alerts shown when adding/editing a transaction
 - **Pots** — CRUD, deposit/withdraw with balance validation, progress toward savings goal, estimated completion date projected from the average deposit rate
@@ -43,7 +43,7 @@ A full-stack personal finance manager with transaction tracking, budget manageme
 - **Currency switcher** (USD/EUR/GBP) — applied app-wide and persisted to localStorage
 - **Dark mode** — follows the OS's `prefers-color-scheme` by default, with a manual toggle that overrides it and persists
 - **Accessibility** — keyboard navigation (sortable table headers with `aria-sort`, arrow-key pagination, modals close on Escape and trap focus), accessible confirmation dialogs for all delete actions (no native `window.confirm`)
-- **Validation** — Zod schemas enforced on both client and server; on the server every money amount must be a whole number of cents within the range of its `Decimal(12,2)` column
+- **Validation** — Zod schemas enforced on both client and server; on the server every money amount must be a whole number of cents within the range of its `Decimal(12,2)` column, names and descriptions are trimmed and can't be blank, and ids (in URLs, query strings and bodies) must be plain positive integers that fit an `Int` column
 
 ## Tech Stack
 
@@ -176,12 +176,13 @@ npm test
 
 `npm test` automatically migrates the test database first (`pretest` script), then runs:
 
-- **Unit tests** — Zod schemas (including the shared money rule: at most 2 decimals, no float false rejections across every cent, column-size limit), `recurringBillStatus.js`, `dueDay.js` (a `dueDay: 31` bill correctly caps to the last day of shorter months, leap years included), `discretionarySpending.js`, and the error handler (no internals leaked in 5xx responses) (no DB needed)
+- **Unit tests** — Zod schemas (including the shared money rule: at most 2 decimals, no float false rejections across every cent, column-size limit), `recurringBillStatus.js`, `dueDay.js` (a `dueDay: 31` bill correctly caps to the last day of shorter months, leap years included), `discretionarySpending.js`, `ids.js`, `query.js`, `csv.js`, and the error handler (no internals leaked in 5xx responses) (no DB needed)
 - **Integration tests** (Supertest against the real Express app) for every resource: accounts, transactions, budgets, pots, recurring bills, categories, reports
 - A concurrency test that fires 10 simultaneous pot withdrawals to verify the balance can never go negative
 - Tests for the reporting endpoints' raw SQL — `GROUP BY` aggregation, the unusual-spending CTE, and the `ROW_NUMBER() OVER (PARTITION BY ...)` window function
 - Tests for account transfers (atomic, rollback-safe), CSV export (filtering + correct quoting of fields containing commas), and merchant-based category suggestions
 - A test that the daily net worth snapshot is recorded (and upserted, not duplicated) when the overview loads, plus ordering for the net worth history endpoint
+- Tests that every `:id` route answers a malformed id (`abc`, `1.5`, `0x1`, `1e0`, `0`, an id too large for the database) with a 400 instead of a 500 or a silent match on id 1, that bad query parameters (`?accountId=abc`, a repeated `?search=`) are a 400 too, that whitespace-only names are rejected, and that exported CSV can't carry a live spreadsheet formula yet still round-trips through import
 - Tests that sub-cent amounts are rejected everywhere they could enter (transfers, transactions, CSV import) — a regression test for a bug where 0.005 transfers silently created money — and that a non-numeric id gets a 400 instead of a 500 with server internals
 - Tests for the cash flow forecast — that an active recurring bill's amount is subtracted exactly on its due date, that the last 3 months' average income is added on the day it's expected to recur, that a bill already paid this cycle is excluded so it isn't double-counted, that a bill due today or already overdue (and still unpaid) is deducted immediately rather than silently skipped until next month, and that payments to a recurring bill's merchant aren't counted a second time as everyday spending
 
@@ -273,6 +274,7 @@ A few endpoints worth calling out:
 - `GET /transactions/export` accepts the same filters (no pagination) and returns a CSV file.
 - `GET /transactions/suggest-category` takes a `merchant` query parameter and returns that merchant's most-used category, or `null` if there's no history for it.
 - `POST /accounts/transfer` takes `fromAccountId`, `toAccountId`, and `amount`, and atomically moves the balance between the two accounts (rolled back entirely if either side fails).
+- A malformed id in the URL (anything but a plain positive integer) is a 400 `Invalid id`, and an `accountId` filter or a repeated query parameter that isn't valid is a 400 `Invalid query parameter: <name>`; a well-formed id that doesn't exist is a 404.
 - Money amounts (here and everywhere else they are accepted) must have at most 2 decimal places and fit a `Decimal(12,2)` column, otherwise the request is rejected with a 400.
 - Error responses are JSON. Messages for 4xx errors are meant for the client; any 5xx response says only `Internal server error`, and the details go to the server log.
 - `GET /reports/overview` has a side effect: it upserts today's total balance into `BalanceSnapshot`, which is what `GET /reports/net-worth-history` reads back. See the note below on why this isn't derived from transactions instead.

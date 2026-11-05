@@ -62,6 +62,26 @@ describe("RecurringBillFormModal", () => {
     expect(screen.getByLabelText("Active")).not.toBeChecked();
   });
 
+  it("rejects a name made only of spaces", async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn();
+    render(
+      <RecurringBillFormModal
+        categories={categories}
+        initialData={null}
+        prefillData={null}
+        onSubmit={onSubmit}
+        onClose={() => {}}
+      />,
+    );
+    await user.type(screen.getByLabelText("Name"), "     ");
+    await user.type(screen.getByLabelText("Amount"), "10");
+    await user.type(screen.getByLabelText("Due Day (1-31)"), "5");
+    await user.click(screen.getByText("Add"));
+    expect(await screen.findByText("Name is required")).toBeInTheDocument();
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
   it("shows a validation error when the due day is out of range", async () => {
     const user = userEvent.setup();
     render(
